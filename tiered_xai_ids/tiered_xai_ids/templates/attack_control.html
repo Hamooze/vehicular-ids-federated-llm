@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <span class="chip ok">Service: {{ service_name }}</span>
+  <span class="chip">Live Attack Control</span>
+</div>
+
+<div class="card">
+  <h3>Simulation Controls Moved</h3>
+  <p>
+    Attack simulation controls are intentionally not shown on monitor dashboards.
+    Use the dedicated attack panel at <code>http://localhost:7700</code>.
+  </p>
+</div>
+
+<div class="card">
+  <h3>Attack Runtime Stats</h3>
+  <table>
+    <tbody id="statsBody">
+      <tr><td colspan="2">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Live Event Feed</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Source</th>
+        <th>Type</th>
+        <th>Timestamp</th>
+        <th>Suspicious</th>
+        <th>Event ID</th>
+      </tr>
+    </thead>
+    <tbody id="pipelineTableBody">
+      <tr><td colspan="5">Waiting for data...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Latest Brain Reports</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Case</th>
+        <th>Summary</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="brainTableBody">
+      <tr><td colspan="3">Waiting for data...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Attack Log</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Level</th>
+        <th>Message</th>
+      </tr>
+    </thead>
+    <tbody id="attackLogBody">
+      <tr><td colspan="3">Waiting for data...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  async function fetchJson(url, options = {}) {
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+      ...options
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const detail = typeof data === "object" ? JSON.stringify(data) : String(data);
+      throw new Error(detail || "request_failed");
+    }
+    return data;
+  }
+
+  function renderStats(stats) {
+    const rows = [
+      ["is_attacking", String(stats.is_attacking)],
+      ["attack_type", String(stats.attack_type ?? "-")],
+      ["current_vehicle", String(stats.current_vehicle ?? "-")],
+      ["total_packets_sent", String(stats.total_packets_sent ?? 0)],
+      ["packets_delivered", String(stats.packets_delivered ?? 0)],
+      ["packets_failed", String(stats.packets_failed ?? 0)],
+      ["active_for_seconds", String(stats.active_for_seconds ?? 0)],
+      ["last_error", String(stats.last_error ?? "-")]
+    ];
+    document.getElementById("statsBody").innerHTML = rows
+      .map(([k, v]) => `<tr><td><strong>${k}</strong></td><td>${v}</td></tr>`)
+      .join("");
+  }
+
+  function renderPipeline(rows) {
+    const data = Array.isArray(rows) ? rows.slice(0, 15) : [];
+    const html = data.length
+      ? data.map((row) => `
+        <tr>
+          <td>${row.source_device ?? "-"}</td>
+          <td>${row.log_type ?? "-"}</td>
+          <td>${row.timestamp ?? "-"}</td>
+          <td>${String(row.suspicious ?? "-")}</td>
+          <td><code>${row.event_id ?? "-"}</code></td>
+        </tr>
+      `).join("")
+      : `<tr><td colspan="5">No pipeline events yet.</td></tr>`;
+    document.getElementById("pipelineTableBody").innerHTML = html;
+  }
+
+  function renderBrain(rows) {
+    const data = Array.isArray(rows) ? rows.slice(0, 10) : [];
+    const html = data.length
+      ? data.map((row) => `
+        <tr>
+          <td><code>${row.case_id ?? "-"}</code></td>
+          <td>${row.executive_summary ?? "-"}</td>
+          <td>${row.recommended_actions ?? "-"}</td>
+        </tr>
+      `).join("")
+      : `<tr><td colspan="3">No reports yet.</td></tr>`;
+    document.getElementById("brainTableBody").innerHTML = html;
+  }
+
+  function renderAttackLogs(rows) {
+    const data = Array.isArray(rows) ? rows.slice(0, 25) : [];
+    const html = data.length
+      ? data.map((row) => `
+        <tr>
+          <td>${row.ts ?? "-"}</td>
+          <td>${row.level ?? "-"}</td>
+          <td>${row.message ?? "-"}</td>
+        </tr>
+      `).join("")
+      : `<tr><td colspan="3">No logs yet.</td></tr>`;
+    document.getElementById("attackLogBody").innerHTML = html;
+  }
+
+  async function refreshLive() {
+    try {
+      const live = await fetchJson("/api/live/overview");
+      renderStats(live.stats ?? {});
+      renderPipeline(live.pipeline ?? []);
+      renderBrain(live.brain_reports ?? []);
+      renderAttackLogs(live.attack_logs ?? []);
+    } catch (err) {
+      console.error("refreshLive error", err);
+    }
+  }
+
+  refreshLive();
+  setInterval(refreshLive, 2000);
+</script>
+{% endblock %}

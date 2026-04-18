@@ -1,0 +1,7 @@
+sensor_event:
+{sensor_event}
+
+rule_assessment:
+{rule_assessment}
+
+Create a CaseSummary payload from this evidence.

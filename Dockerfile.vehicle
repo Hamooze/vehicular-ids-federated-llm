@@ -1,0 +1,29 @@
+# Use official Python runtime as base image
+FROM python:3.9-slim
+
+# Set working directory
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    FLASK_ENV=development
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application files
+COPY web_vehicle_client.py .
+COPY templates/ ./templates/
+
+# Expose port for web interface
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:5000/', timeout=5)" || exit 1
+
+# Run the application
+CMD ["python", "web_vehicle_client.py"]

@@ -1,0 +1,4 @@
+case_summary:
+{case_summary}
+
+Generate a complete XAIReport JSON payload for this case.

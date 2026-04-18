@@ -1,0 +1,10 @@
+Round: {round_id}
+Updates in round: {update_count}
+Participant nodes: {participants}
+Federated scores:
+{scores}
+
+Return JSON with:
+- strategy (short string)
+- recommendation (1 sentence)
+- recommended_actions (3-5 concise actions)

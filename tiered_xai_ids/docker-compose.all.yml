@@ -1,0 +1,189 @@
+services:
+  global-model:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tiered-global-model
+    command: uvicorn run_global_model:app --host 0.0.0.0 --port 8104
+    env_file:
+      - .env
+    environment:
+      GLOBAL_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      GLOBAL_SENSOR_NODE_URL: http://sensor-node:8101
+      GLOBAL_FILTER_NODE_URL: http://filter-node:8102
+      GLOBAL_BRAIN_NODE_URL: http://brain-node:8103
+    ports:
+      - "8104:8104"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8104/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+
+  sensor-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tiered-sensor-node
+    command: uvicorn run_sensor:app --host 0.0.0.0 --port 8101
+    env_file:
+      - .env
+    environment:
+      SENSOR_FILTER_NODE_URL: http://filter-node:8102
+      SENSOR_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      SENSOR_GLOBAL_MODEL_URL: http://global-model:8104
+    ports:
+      - "8101:8101"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+
+  filter-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tiered-filter-node
+    command: uvicorn run_filter:app --host 0.0.0.0 --port 8102
+    env_file:
+      - .env
+    environment:
+      FILTER_BRAIN_NODE_URL: http://brain-node:8103
+      FILTER_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      FILTER_GLOBAL_MODEL_URL: http://global-model:8104
+    ports:
+      - "8102:8102"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      brain-node:
+        condition: service_healthy
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8102/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+
+  brain-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tiered-brain-node
+    command: uvicorn run_brain:app --host 0.0.0.0 --port 8103
+    env_file:
+      - .env
+    environment:
+      BRAIN_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      BRAIN_GLOBAL_MODEL_URL: http://global-model:8104
+    ports:
+      - "8103:8103"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8103/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tiered-orchestrator
+    command: uvicorn run_orchestrator:app --host 0.0.0.0 --port 8100
+    env_file:
+      - .env
+    environment:
+      ORCH_SENSOR_NODE_URL: http://sensor-node:8101
+      ORCH_FILTER_NODE_URL: http://filter-node:8102
+      ORCH_BRAIN_NODE_URL: http://brain-node:8103
+      ORCH_GLOBAL_MODEL_URL: http://global-model:8104
+      ORCH_ALLOWED_ORIGINS: "*"
+      ORCH_DDOS_ENABLED: ${ORCH_DDOS_ENABLED}
+      ORCH_GPS_SPOOF_ENABLED: ${ORCH_GPS_SPOOF_ENABLED}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_USE_TLS: ${SMTP_USE_TLS}
+      ALERT_COOLDOWN_SECONDS: ${ALERT_COOLDOWN_SECONDS}
+      ALERT_MIN_SEVERITY: ${ALERT_MIN_SEVERITY}
+    ports:
+      - "8100:8100"
+    depends_on:
+      sensor-node:
+        condition: service_healthy
+      filter-node:
+        condition: service_healthy
+      brain-node:
+        condition: service_healthy
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+
+  panel-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tiered-panel-app
+    command: uvicorn run_panel:app --host 0.0.0.0 --port 8200
+    env_file:
+      - .env
+    environment:
+      PANEL_ORCHESTRATOR_URL: http://orchestrator:8100
+      PANEL_GLOBAL_MODEL_URL: http://global-model:8104
+    ports:
+      - "8200:8200"
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8200/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+
+  federated-lab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tiered-federated-lab
+    command: uvicorn run_federated_lab:app --host 0.0.0.0 --port 8300
+    env_file:
+      - .env
+    environment:
+      FEDLAB_GLOBAL_MODEL_URL: http://global-model:8104
+      FEDLAB_ORCHESTRATOR_URL: http://orchestrator:8100
+    ports:
+      - "8300:8300"
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8300/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4

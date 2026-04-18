@@ -1,0 +1,22 @@
+services:
+  sensor-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tiered-sensor-node
+    command: uvicorn run_sensor:app --host 0.0.0.0 --port 8101
+    env_file:
+      - .env
+    environment:
+      SENSOR_FILTER_NODE_URL: http://192.168.1.10:8102
+      SENSOR_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      SENSOR_GLOBAL_MODEL_URL: http://192.168.1.10:8104
+    ports:
+      - "8101:8101"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4

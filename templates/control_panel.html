@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Control Panel Premium</title>
+    <!-- Google Fonts for sleek typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #07090f;
+            --glass-bg: rgba(16, 21, 35, 0.55);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --primary: #00F0FF;
+            --primary-glow: rgba(0, 240, 255, 0.35);
+            --secondary: #BF00FF;
+            --secondary-glow: rgba(191, 0, 255, 0.35);
+            --success: #00FF9D;
+            --success-glow: rgba(0, 255, 157, 0.35);
+            --danger: #FF0055;
+            --danger-glow: rgba(255, 0, 85, 0.35);
+            --warning: #FFE600;
+            --text-main: #FFFFFF;
+            --text-muted: #8A94A6;
+            --card-radius: 18px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.05), transparent 30%),
+                radial-gradient(circle at 90% 80%, rgba(191, 0, 255, 0.05), transparent 30%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 30px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* Glassmorphism Card Style */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+            transform: translateY(-2px);
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+        }
+
+        .header-content h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+            letter-spacing: -0.5px;
+        }
+
+        .header-content p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+
+        .sys-status-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            padding: 8px 16px;
+            border-radius: 50px;
+            color: var(--success);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px var(--success-glow);
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulsing 2s infinite;
+        }
+
+        /* Layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 25px;
+            align-items: stretch;
+            min-height: 600px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            align-content: start;
+        }
+
+        .terminal-panel {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* Card Elements */
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 12px;
+        }
+
+        .card-header h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            color: var(--text-main);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .card-icon {
+            font-size: 1.4rem;
+        }
+
+        /* Status Items */
+        .status-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            transition: all 0.2s;
+        }
+
+        .status-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .status-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        /* Input Controls (Changer) */
+        .vehicle-changer {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .input-text {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--glass-border);
+            color: var(--primary);
+            padding: 6px 10px;
+            border-radius: 6px;
+            width: 90px;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .input-text:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 1;
+        }
+
+        .btn:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(rgba(255, 255, 255, 0.2), transparent, transparent);
+            transform: rotate(45deg);
+            z-index: -1;
+            transition: all 0.5s ease;
+            opacity: 0;
+        }
+
+        .btn:hover::after {
+            opacity: 1;
+            transform: rotate(45deg) translate(0, 100%);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.15);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-small {
+            width: auto;
+            padding: 6px 12px;
+            margin: 0;
+            font-size: 0.8rem;
+            border-radius: 6px;
+        }
+
+        .btn-success {
+            background: rgba(0, 255, 157, 0.1);
+            border-color: rgba(0, 255, 157, 0.3);
+            color: var(--success);
+            box-shadow: inset 0 0 10px rgba(0, 255, 157, 0.1), 0 4px 15px rgba(0, 255, 157, 0.1);
+        }
+
+        .btn-primary {
+            background: rgba(0, 240, 255, 0.1);
+            border-color: rgba(0, 240, 255, 0.3);
+            color: var(--primary);
+            box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.1), 0 4px 15px rgba(0, 240, 255, 0.1);
+        }
+
+        .btn-danger {
+            background: rgba(255, 0, 85, 0.1);
+            border-color: rgba(255, 0, 85, 0.3);
+            color: var(--danger);
+            box-shadow: inset 0 0 10px rgba(255, 0, 85, 0.1), 0 4px 15px rgba(255, 0, 85, 0.1);
+        }
+
+        .btn-warning {
+            background: rgba(255, 230, 0, 0.1);
+            border-color: rgba(255, 230, 0, 0.3);
+            color: var(--warning);
+            box-shadow: inset 0 0 10px rgba(255, 230, 0, 0.1), 0 4px 15px rgba(255, 230, 0, 0.1);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+        }
+
+        .btn-secondary:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            filter: grayscale(1);
+            pointer-events: none;
+        }
+
+        /* Badge */
+        .badge {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Space Grotesk', sans-serif;
+            border: 1px solid transparent;
+        }
+
+        .badge-active {
+            background: rgba(0, 255, 157, 0.15);
+            border-color: rgba(0, 255, 157, 0.3);
+            color: var(--success);
+            box-shadow: 0 0 10px var(--success-glow);
+        }
+
+        .badge-inactive {
+            background: rgba(138, 148, 166, 0.15);
+            border-color: rgba(138, 148, 166, 0.3);
+            color: var(--text-muted);
+        }
+
+        /* Terminal Log */
+        .logger-card {
+            flex-grow: 1;
+        }
+
+        .log-container {
+            flex-grow: 1;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: 12px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: calc(100vh - 200px);
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        .log-entry {
+            opacity: 0;
+            transform: translateX(-10px);
+            animation: slideIn 0.3s ease forwards;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .log-time {
+            color: #5C677D;
+            margin-right: 8px;
+        }
+
+        .log-tag {
+            display: inline-block;
+            min-width: 65px;
+        }
+
+        .log-action { color: var(--primary); }
+        .log-success { color: var(--success); }
+        .log-error { color: var(--danger); }
+        .log-attack { color: var(--warning); text-shadow: 0 0 5px rgba(255, 230, 0, 0.3); }
+
+        /* Notifications */
+        .alert-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .alert {
+            padding: 14px 20px;
+            border-radius: 10px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-left: 4px solid transparent;
+            color: #fff;
+            font-weight: 500;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 250px;
+        }
+
+        .alert.show {
+            transform: translateX(0);
+        }
+
+        .alert-success { border-left-color: var(--success); }
+        .alert-error { border-left-color: var(--danger); }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border-top-color: currentColor;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulsing {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 var(--success-glow); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(0, 255, 157, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 157, 0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1100px) {
+            .main-layout { grid-template-columns: 1fr; }
+            .log-container { max-height: 400px; }
+        }
+        @media (max-width: 768px) {
+            .dashboard { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="alert-container" id="alertContainer"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header glass-card">
+            <div class="header-content">
+                <h1>NEXUS VEHICLE NODE</h1>
+                <p>Advanced Vehicular Network Protocol Interface</p>
+            </div>
+            <div class="sys-status-badge">
+                <div class="pulse"></div>
+                SYSTEM ONLINE
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            
+            <!-- Left Grid: Dashboards & Controls -->
+            <div class="dashboard">
+                <!-- Vehicle Telemetry & Profile -->
+                <div class="glass-card">
+                    <div class="card-header">
+                        <span class="card-icon">⚡</span>
+                        <h2>Vehicle Profile</h2>
+                    </div>
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <span class="status-label">Node ID:</span>
+                            <div class="vehicle-changer">
+                                <input type="text" id="vehicleIdInput" class="input-text" value="Detecting...">
+                                <button onclick="changeVehicle()" class="btn btn-primary btn-small">APPLY</button>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Velocity (km/h):</span>
+                            <span class="status-value" id="speed">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Coordinates:</span>
+                            <span class="status-value" id="location" style="font-size: 0.95rem;">-</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Azimuth:</span>
+                            <span class="status-value" id="heading">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Threat Simulation -->
+                <div class="glass-card" style="box-shadow: inset 0 0 30px rgba(255, 0, 85, 0.05); border-color: rgba(255, 0, 85, 0.2);">
+                    <div class="card-header">
+                        <span class="card-icon">☣️</span>
+                        <h2 style="color: var(--danger)">Adversarial Vectors</h2>
+                    </div>
+                    <button class="btn btn-danger" onclick="sendDDoS()">
+                        Deploy DDoS Flood
+                    </button>
+                    <button class="btn btn-warning" onclick="sendGPSSpoofing()">
+                        Spoof Nav Satellites
+                    </button>
+                    <p style="margin-top: 12px; color: var(--text-muted); font-size: 0.8rem; text-align: center; font-style: italic;">
+                        Authorized penetration testing only. Triggers multi-tiered XAI IDS.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right Column: Terminal Logging -->
+            <div class="terminal-panel">
+                <div class="glass-card logger-card" style="display: flex; flex-direction: column; height: 100%;">
+                    <div class="card-header" style="margin-bottom: 12px; padding-bottom: 12px;">
+                        <span class="card-icon">📟</span>
+                        <h2>Syslog Terminal</h2>
+                    </div>
+                    <div class="log-container" id="activityLog">
+                        <div class="log-entry">
+                            <span class="log-time">[Init]</span> 
+                            <span class="log-success log-tag">[OK]</span>
+                            <span style="color:#FFF;">Nexus UI core fully loaded. Secure link established.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- End Main Layout -->
+    </div> <!-- End Container -->
+
+    <script>
+        let vehicleInputEl = document.getElementById('vehicleIdInput');
+
+        setInterval(updateStatus, 2000);
+        updateStatus();
+
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                // Only update the input if it hasn't been modified heavily by user, or mostly just on load
+                if(vehicleInputEl.value === 'Detecting...') {
+                    vehicleInputEl.value = data.vehicle_id;
+                }
+
+                document.getElementById('speed').textContent = data.speed.toFixed(1);
+                document.getElementById('location').textContent = `${data.location[0].toFixed(5)}, ${data.location[1].toFixed(5)}`;
+                document.getElementById('heading').textContent = data.heading.toFixed(1) + '°';
+            } catch (error) {
+                console.error('Core sync failure:', error);
+            }
+        }
+
+        async function changeVehicle() {
+            const newId = vehicleInputEl.value.trim();
+            if(!newId) return;
+
+            try {
+                addLog('SYS', `Requesting Node Re-Assigment to [${newId}]`, 'action');
+                const response = await fetch('/api/set-vehicle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vehicle_id: newId })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification(`ID Changed to ${newId}`, 'success');
+                    addLog('OK', `Identity morphed to ${newId}`, 'success');
+                    updateStatus();
+                } else {
+                    showNotification('ID Change Failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Network Failure', 'error');
+            }
+        }
+
+        async function sendDDoS() {
+            if (!confirm('WARNING: Initiate Layer 7 DDoS packet flood simulation?')) return;
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> FLOODING...';
+
+            try {
+                addLog('ATK', 'Initializing fast-packet flood vector...', 'attack');
+                const response = await fetch('/api/send-attack-ddos', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification(`${data.packets_sent} Malware packets sent`, 'success');
+                    addLog('ATK', `Flood simulation complete. Volumetric load: ${data.packets_sent} pkts`, 'attack');
+                } else {
+                    showNotification('Flood Failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Network Error', 'error');
+                addLog('ERR', error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Deploy DDoS Flood';
+            }
+        }
+
+        async function sendGPSSpoofing() {
+            if (!confirm('WARNING: Inject impossible geospatial telemetry bounds?')) return;
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> SPOOFING...';
+
+            try {
+                addLog('ATK', 'Injecting fabricated satellite ephemeris data...', 'attack');
+                const response = await fetch('/api/send-attack-gps-spoofing', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('Nav data manipulated', 'success');
+                    addLog('ATK', `Spoofed leaps applied to ${data.locations_spoofed} vectors`, 'attack');
+                } else {
+                    showNotification('Spoof Failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Network Error', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Spoof Nav Satellites';
+            }
+        }
+
+        function showNotification(message, type) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            
+            let icon = type === 'success' ? '✓' : '✖';
+            alert.innerHTML = `<span style="font-weight: 800;">${icon}</span> <span>${message}</span>`;
+            
+            container.appendChild(alert);
+
+            setTimeout(() => alert.classList.add('show'), 10);
+            setTimeout(() => {
+                alert.classList.remove('show');
+                setTimeout(() => alert.remove(), 400);
+            }, 3000);
+        }
+
+        function addLog(typeStr, message, styleClass = 'action') {
+            const log = document.getElementById('activityLog');
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+
+            let colorClass = `log-${styleClass}`;
+
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="${colorClass} log-tag">[${typeStr}]</span> <span style="color:#FFF;">${message}</span>`;
+
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+    </script>
+</body>
+</html>

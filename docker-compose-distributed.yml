@@ -1,0 +1,123 @@
+name: vehicular-distributed
+
+services:
+  # Master Federated Learning Coordinator
+  master-coordinator:
+    build:
+      context: .
+      dockerfile: Dockerfile.master
+    ports:
+      - "${MASTER_COORDINATOR_PORT}:${MASTER_COORDINATOR_PORT}"
+    environment:
+      MASTER_COORDINATOR_HOST: ${MASTER_COORDINATOR_HOST}
+      MASTER_COORDINATOR_PORT: ${MASTER_COORDINATOR_PORT}
+      IDS_A_URL: "http://ids-server-a:${IDS_A_PORT}"
+      IDS_B_URL: "http://ids-server-b:${IDS_B_PORT}"
+      SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS}
+      PYTHONUNBUFFERED: ${PYTHONUNBUFFERED}
+      FLASK_ENV: ${FLASK_ENV}
+    networks:
+      - vehicular-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:${MASTER_COORDINATOR_PORT}/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  # IDS Server A - DDoS Specialist
+  ids-server-a:
+    build:
+      context: .
+      dockerfile: Dockerfile.ids_a
+    ports:
+      - "${IDS_A_PORT}:${IDS_A_PORT}"
+    environment:
+      NODE_ID: ${NODE_ID_A}
+      ZONE: ${ZONE_A}
+      SPECIALTY: ${SPECIALTY_A}
+      IDS_A_PORT: ${IDS_A_PORT}
+      MASTER_COORDINATOR_URL: "http://master-coordinator:${MASTER_COORDINATOR_PORT}"
+      PYTHONUNBUFFERED: ${PYTHONUNBUFFERED}
+      FLASK_ENV: ${FLASK_ENV}
+    networks:
+      - vehicular-network
+    depends_on:
+      master-coordinator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:${IDS_A_PORT}/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    volumes:
+      - ../models:/app/../models
+
+  # IDS Server B - GPS Spoofing Specialist
+  ids-server-b:
+    build:
+      context: .
+      dockerfile: Dockerfile.ids_b
+    ports:
+      - "${IDS_B_PORT}:${IDS_B_PORT}"
+    environment:
+      NODE_ID: ${NODE_ID_B}
+      ZONE: ${ZONE_B}
+      SPECIALTY: ${SPECIALTY_B}
+      IDS_B_PORT: ${IDS_B_PORT}
+      MASTER_COORDINATOR_URL: "http://master-coordinator:${MASTER_COORDINATOR_PORT}"
+      PYTHONUNBUFFERED: ${PYTHONUNBUFFERED}
+      FLASK_ENV: ${FLASK_ENV}
+    networks:
+      - vehicular-network
+    depends_on:
+      master-coordinator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:${IDS_B_PORT}/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    volumes:
+      - ../models:/app/../models
+
+  # Attack Generation Client
+  attack-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.attack
+    ports:
+      - "${ATTACK_CLIENT_PORT}:${ATTACK_CLIENT_PORT}"
+    environment:
+      IDS_A_URL: "http://ids-server-a:${IDS_A_PORT}"
+      IDS_B_URL: "http://ids-server-b:${IDS_B_PORT}"
+      MASTER_COORDINATOR_URL: "http://master-coordinator:${MASTER_COORDINATOR_PORT}"
+      ATTACK_CLIENT_PORT: ${ATTACK_CLIENT_PORT}
+      ATTACK_DOCKER_CONTROL_ENABLED: "true"
+      PYTHONUNBUFFERED: ${PYTHONUNBUFFERED}
+      FLASK_ENV: ${FLASK_ENV}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - vehicular-network
+    depends_on:
+      ids-server-a:
+        condition: service_healthy
+      ids-server-b:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:${ATTACK_CLIENT_PORT}/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+networks:
+  vehicular-network:
+    driver: bridge

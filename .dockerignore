@@ -1,0 +1,17 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+graphify-out/
+models/
+docs/
+styles/
+data/
+
+OllamaSetup.exe
+*.zip
+*.tar
+*.tar.gz

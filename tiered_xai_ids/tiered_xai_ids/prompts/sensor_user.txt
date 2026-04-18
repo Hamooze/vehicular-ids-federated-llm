@@ -1,0 +1,9 @@
+source_device: {source_device}
+log_type: {log_type}
+timestamp: {timestamp}
+
+rule_assessment:
+{rule_assessment}
+
+raw_log_excerpt:
+{raw_log}

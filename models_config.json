@@ -1,0 +1,24 @@
+{
+  "models_directory": "C:\\Users\\yazan\\Downloads\\V5-FINAL\\V4\\models",
+  "default_model": "phi2",
+  "models": {
+    "phi2": {
+      "path": "C:\\Users\\yazan\\Downloads\\V5-FINAL\\V4\\models\\phi2\\phi-2.Q4_K_M.gguf",
+      "file": "phi-2.Q4_K_M.gguf",
+      "size": "3.3GB",
+      "ready": true
+    },
+    "mistral7b": {
+      "path": "C:\\Users\\yazan\\Downloads\\V5-FINAL\\V4\\models\\mistral7b\\mistral-7b-instruct-v0.2.Q4_K_M.gguf",
+      "file": "mistral-7b-instruct-v0.2.Q4_K_M.gguf",
+      "size": "4.7GB",
+      "ready": true
+    },
+    "tinyllama": {
+      "path": "C:\\Users\\yazan\\Downloads\\V5-FINAL\\V4\\models\\tinyllama\\tinyllama-1.1b-q4_k_m.gguf",
+      "file": "tinyllama-1.1b-q4_k_m.gguf",
+      "size": "0.7GB",
+      "ready": false
+    }
+  }
+}

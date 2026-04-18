@@ -1,0 +1,55 @@
+name: vehicular-basic
+
+services:
+  # Fog Server (Laptop 1)
+  fog-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.fog
+    ports:
+      - "${FOG_SERVER_PORT}:8080"
+    environment:
+      FLASK_ENV: ${FLASK_ENV}
+      PYTHONUNBUFFERED: ${PYTHONUNBUFFERED}
+    networks:
+      - vehicular-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  # Vehicle Client (Laptop 2)
+  vehicle-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.vehicle
+    ports:
+      - "${VEHICLE_CLIENT_PORT}:5000"
+    environment:
+      FOG_SERVER_URL: "http://${FOG_SERVER_IP}:${FOG_SERVER_PORT}"
+      VEHICLE_ID: ${VEHICLE_ID}
+      VEHICLE_SPEED: ${VEHICLE_SPEED}
+      VEHICLE_LOCATION_LAT: ${VEHICLE_LOCATION_LAT}
+      VEHICLE_LOCATION_LON: ${VEHICLE_LOCATION_LON}
+      VEHICLE_HEADING: ${VEHICLE_HEADING}
+      FLASK_ENV: ${FLASK_ENV}
+      PYTHONUNBUFFERED: ${PYTHONUNBUFFERED}
+    networks:
+      - vehicular-network
+    depends_on:
+      fog-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+networks:
+  vehicular-network:
+    driver: bridge

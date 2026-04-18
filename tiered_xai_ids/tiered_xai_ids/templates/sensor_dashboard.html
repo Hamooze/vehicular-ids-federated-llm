@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <span class="chip ok">Service: {{ service_name }}</span>
+  <span class="chip">Model: {{ model_name }}</span>
+  <span class="chip">Threshold: {{ suspicious_threshold }}</span>
+</div>
+
+<div class="card">
+  <h3>Recent Sensor Events</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Event</th>
+        <th>Device</th>
+        <th>Label</th>
+        <th>Confidence</th>
+        <th>Anomaly</th>
+        <th>Priority</th>
+        <th>Forwarded</th>
+      </tr>
+    </thead>
+    <tbody id="eventsBody">
+      {% for event in events %}
+      <tr>
+        <td><code>{{ event.event_id }}</code></td>
+        <td>{{ event.source_device }}</td>
+        <td>{{ event.label }}</td>
+        <td>{{ event.confidence }}</td>
+        <td>{{ event.anomaly_score }}</td>
+        <td>{{ event.priority }}</td>
+        <td>{{ event.forwarded }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7">No events yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<script>
+  async function refreshSensorEvents() {
+    try {
+      const res = await fetch("/v1/events/recent");
+      const data = await res.json();
+      const rows = Array.isArray(data) ? data.slice(0, 20) : [];
+      const html = rows.length ? rows.map((event) => `
+        <tr>
+          <td><code>${event.event_id ?? "-"}</code></td>
+          <td>${event.source_device ?? "-"}</td>
+          <td>${event.label ?? "-"}</td>
+          <td>${event.confidence ?? "-"}</td>
+          <td>${event.anomaly_score ?? "-"}</td>
+          <td>${event.priority ?? "-"}</td>
+          <td>${String(event.forwarded ?? "-")}</td>
+        </tr>
+      `).join("") : `<tr><td colspan="7">No events yet.</td></tr>`;
+      document.getElementById("eventsBody").innerHTML = html;
+    } catch (err) {
+      console.error("refreshSensorEvents", err);
+    }
+  }
+  setInterval(refreshSensorEvents, 2000);
+</script>
+{% endblock %}

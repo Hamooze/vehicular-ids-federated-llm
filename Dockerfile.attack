@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+COPY requirements_updated.txt ./
+
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements_updated.txt
+
+COPY attack_client.py ./
+COPY templates/attack_panel.html templates/
+
+EXPOSE 7000
+
+HEALTHCHECK --interval=20s --timeout=6s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7000/api/health', timeout=5)"
+
+CMD ["python", "attack_client.py"]

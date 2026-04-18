@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy requirements
+COPY requirements_updated.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements_updated.txt
+
+# Copy application files
+COPY ids_server_a.py .
+COPY llm_guardian.py .
+COPY llm_agent.py .
+
+# Create models directory for LLM
+RUN mkdir -p ../models/phi2
+
+# Run the IDS Server A
+CMD ["python", "ids_server_a.py"]

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <span class="chip ok">Service: {{ service_name }}</span>
+  <span class="chip">Model: {{ model_name }}</span>
+  <span class="chip">Min Risk Forward: {{ min_risk }}</span>
+</div>
+
+<div class="card">
+  <h3>Recent Cases</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Case</th>
+        <th>Risk</th>
+        <th>Assets</th>
+        <th>Hypothesis</th>
+        <th>Forwarded</th>
+      </tr>
+    </thead>
+    <tbody id="casesBody">
+      {% for case in cases %}
+      <tr>
+        <td><code>{{ case.case_id }}</code></td>
+        <td>{{ case.risk_score }}</td>
+        <td>{{ case.affected_assets }}</td>
+        <td>{{ case.attack_hypothesis }}</td>
+        <td>{{ case.forwarded }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5">No cases yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<script>
+  async function refreshCases() {
+    try {
+      const res = await fetch("/v1/cases/recent");
+      const data = await res.json();
+      const rows = Array.isArray(data) ? data.slice(0, 20) : [];
+      const html = rows.length ? rows.map((item) => `
+        <tr>
+          <td><code>${item.case_id ?? "-"}</code></td>
+          <td>${item.risk_score ?? "-"}</td>
+          <td>${item.affected_assets ?? "-"}</td>
+          <td>${item.attack_hypothesis ?? "-"}</td>
+          <td>${String(item.forwarded ?? "-")}</td>
+        </tr>
+      `).join("") : `<tr><td colspan="5">No cases yet.</td></tr>`;
+      document.getElementById("casesBody").innerHTML = html;
+    } catch (err) {
+      console.error("refreshCases", err);
+    }
+  }
+  setInterval(refreshCases, 2000);
+</script>
+{% endblock %}

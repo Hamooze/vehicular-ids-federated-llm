@@ -1,0 +1,345 @@
+name: vehicular-unified
+
+services:
+  global-model:
+    build:
+      context: ./tiered_xai_ids
+      dockerfile: Dockerfile
+    command: uvicorn run_global_model:app --host 0.0.0.0 --port 8104
+    env_file:
+      - ./tiered_xai_ids/.env
+    environment:
+      GLOBAL_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      GLOBAL_SENSOR_NODE_URL: http://sensor-node:8101
+      GLOBAL_FILTER_NODE_URL: http://filter-node:8102
+      GLOBAL_BRAIN_NODE_URL: http://brain-node:8103
+      GLOBAL_IDS_A_URL: http://ids-node-a:8001
+      GLOBAL_IDS_B_URL: http://ids-node-b:8002
+    ports:
+      - "8104:8104"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8104/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+  brain-node:
+    build:
+      context: ./tiered_xai_ids
+      dockerfile: Dockerfile
+    command: uvicorn run_brain:app --host 0.0.0.0 --port 8103
+    env_file:
+      - ./tiered_xai_ids/.env
+    environment:
+      BRAIN_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      BRAIN_GLOBAL_MODEL_URL: http://global-model:8104
+    ports:
+      - "8103:8103"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8103/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+    depends_on:
+      global-model:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+  filter-node:
+    build:
+      context: ./tiered_xai_ids
+      dockerfile: Dockerfile
+    command: uvicorn run_filter:app --host 0.0.0.0 --port 8102
+    env_file:
+      - ./tiered_xai_ids/.env
+    environment:
+      FILTER_BRAIN_NODE_URL: http://brain-node:8103
+      FILTER_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      FILTER_GLOBAL_MODEL_URL: http://global-model:8104
+    ports:
+      - "8102:8102"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      brain-node:
+        condition: service_healthy
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8102/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+  sensor-node:
+    build:
+      context: ./tiered_xai_ids
+      dockerfile: Dockerfile
+    command: uvicorn run_sensor:app --host 0.0.0.0 --port 8101
+    env_file:
+      - ./tiered_xai_ids/.env
+    environment:
+      SENSOR_FILTER_NODE_URL: http://filter-node:8102
+      SENSOR_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      SENSOR_GLOBAL_MODEL_URL: http://global-model:8104
+    ports:
+      - "8101:8101"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      filter-node:
+        condition: service_healthy
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+  ids-node-a:
+    build:
+      context: ./tiered_xai_ids
+      dockerfile: Dockerfile
+    command: uvicorn run_ids_node:app --host 0.0.0.0 --port 8001
+    env_file:
+      - ./tiered_xai_ids/.env
+    environment:
+      IDS_SERVICE_NAME: ids-node-a
+      IDS_BIND_PORT: "8001"
+      IDS_SPECIALTY: ddos
+      IDS_CROSS_LEARNING_START_ROUND: "3"
+      IDS_GLOBAL_MODEL_URL: http://global-model:8104
+      IDS_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      IDS_MODEL_NAME: phi3.5
+    ports:
+      - "8001:8001"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+  ids-node-b:
+    build:
+      context: ./tiered_xai_ids
+      dockerfile: Dockerfile
+    command: uvicorn run_ids_node:app --host 0.0.0.0 --port 8002
+    env_file:
+      - ./tiered_xai_ids/.env
+    environment:
+      IDS_SERVICE_NAME: ids-node-b
+      IDS_BIND_PORT: "8002"
+      IDS_SPECIALTY: gps_spoof
+      IDS_CROSS_LEARNING_START_ROUND: "3"
+      IDS_GLOBAL_MODEL_URL: http://global-model:8104
+      IDS_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      IDS_MODEL_NAME: phi3.5
+    ports:
+      - "8002:8002"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+  orchestrator:
+    build:
+      context: ./tiered_xai_ids
+      dockerfile: Dockerfile
+    command: uvicorn run_orchestrator:app --host 0.0.0.0 --port 8100
+    env_file:
+      - ./tiered_xai_ids/.env
+    environment:
+      ORCH_SENSOR_NODE_URL: http://sensor-node:8101
+      ORCH_FILTER_NODE_URL: http://filter-node:8102
+      ORCH_BRAIN_NODE_URL: http://brain-node:8103
+      ORCH_GLOBAL_MODEL_URL: http://global-model:8104
+      ORCH_IDS_A_URL: http://ids-node-a:8001
+      ORCH_IDS_B_URL: http://ids-node-b:8002
+      ORCH_ALLOWED_ORIGINS: "http://localhost:8200"
+    ports:
+      - "8100:8100"
+    depends_on:
+      sensor-node:
+        condition: service_healthy
+      filter-node:
+        condition: service_healthy
+      brain-node:
+        condition: service_healthy
+      global-model:
+        condition: service_healthy
+      ids-node-a:
+        condition: service_healthy
+      ids-node-b:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+  panel-app:
+    build:
+      context: ./tiered_xai_ids
+      dockerfile: Dockerfile
+    command: uvicorn run_panel:app --host 0.0.0.0 --port 8200
+    env_file:
+      - ./tiered_xai_ids/.env
+    environment:
+      PANEL_ORCHESTRATOR_URL: http://orchestrator:8100
+      PANEL_GLOBAL_MODEL_URL: http://global-model:8104
+    ports:
+      - "8200:8200"
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8200/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+  federated-lab:
+    build:
+      context: ./tiered_xai_ids
+      dockerfile: Dockerfile
+    command: uvicorn run_federated_lab:app --host 0.0.0.0 --port 8300
+    env_file:
+      - ./tiered_xai_ids/.env
+    environment:
+      FEDLAB_GLOBAL_MODEL_URL: http://global-model:8104
+      FEDLAB_ORCHESTRATOR_URL: http://orchestrator:8100
+    ports:
+      - "8300:8300"
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+      global-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8300/health', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+  vehicle-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.vehicle
+    environment:
+      FOG_SERVER_URL: http://orchestrator:8100
+      VEHICLE_ID: ${VEHICLE_ID:-V001}
+      VEHICLE_SPEED: ${VEHICLE_SPEED:-60}
+      VEHICLE_LOCATION_LAT: ${VEHICLE_LOCATION_LAT:-25.2048}
+      VEHICLE_LOCATION_LON: ${VEHICLE_LOCATION_LON:-55.2708}
+      VEHICLE_HEADING: ${VEHICLE_HEADING:-90}
+      VEHICLE_CLIENT_PORT: 5000
+      FLASK_ENV: ${FLASK_ENV:-development}
+      PYTHONUNBUFFERED: ${PYTHONUNBUFFERED:-1}
+    ports:
+      - "5000:5000"
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://127.0.0.1:5000/', timeout=5)"]
+      interval: 20s
+      timeout: 6s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+  attack-client:
+    build:
+      context: .
+      dockerfile: Dockerfile.attack
+    environment:
+      ORCHESTRATOR_URL: http://orchestrator:8100
+      IDS_A_URL: http://orchestrator:8100
+      IDS_B_URL: http://orchestrator:8100
+      IDS_A_DIRECT_URL: http://ids-node-a:8001
+      IDS_B_DIRECT_URL: http://ids-node-b:8002
+      MASTER_COORDINATOR_URL: http://orchestrator:8100
+      GLOBAL_MODEL_URL: http://global-model:8104
+      ATTACK_CLIENT_PORT: 7000
+      ATTACK_DOCKER_CONTROL_ENABLED: "true"
+      FLASK_ENV: ${FLASK_ENV:-development}
+      PYTHONUNBUFFERED: ${PYTHONUNBUFFERED:-1}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "7700:7000"
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://127.0.0.1:7000/api/health', timeout=5)"]
+      interval: 20s
+      timeout: 6s
+      retries: 4
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+  simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile.simulator
+    environment:
+      ORCHESTRATOR_URL: http://orchestrator:8100
+    ports:
+      - "9000:9000"
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - unified-vehicular-network
+
+networks:
+  unified-vehicular-network:
+    driver: bridge

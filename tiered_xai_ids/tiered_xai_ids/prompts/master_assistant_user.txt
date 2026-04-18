@@ -1,0 +1,38 @@
+Operator question:
+{question}
+
+Active attack type (ddos / gps_spoof / empty if none):
+{detected_attack_type}
+
+Current federated round:
+{current_round}
+
+Current global policy:
+{policy}
+
+Recent closed rounds:
+{recent_history}
+
+Live telemetry context:
+{telemetry_context}
+
+Instructions:
+- If detected_attack_type is "ddos": focus your summary and actions on DDoS mitigation.
+- If detected_attack_type is "gps_spoof": focus your summary and actions on GPS spoofing countermeasures.
+- If detected_attack_type is "prompt_injection": focus on instruction-hijack containment and trust-boundary controls.
+- If detected_attack_type is "indirect_prompt_injection": focus on untrusted content channels and retrieval/input sanitization.
+- If detected_attack_type is "v2x_exploitation": focus on V2X message integrity, replay/sybil defenses, and cross-validation.
+- If detected_attack_type is "data_poisoning": focus on model-data integrity, rollback, and poisoning containment.
+- If detected_attack_type is empty: summarize the current network state and readiness.
+- Your summary must be 2-3 sentences describing what is happening right now.
+- Your recommended_actions must be exactly 3 concrete, specific actions relevant to the attack type.
+- Your tone must be professional and incident-response oriented.
+- Provide recommended_prompt as ONE operator-ready prompt (single paragraph) that asks for a deeper attack-specific investigation using current telemetry and federated state.
+- Do not repeat the same actions regardless of attack type.
+
+Return JSON with:
+- summary
+- details (list of bullets)
+- alert_level
+- recommended_actions
+- recommended_prompt

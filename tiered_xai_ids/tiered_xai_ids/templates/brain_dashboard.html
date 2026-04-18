@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <span class="chip ok">Service: {{ service_name }}</span>
+  <span class="chip">Model: {{ model_name }}</span>
+</div>
+
+<div class="card">
+  <h3>Recent XAI Reports</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Case</th>
+        <th>Executive Summary</th>
+        <th>Actions</th>
+        <th>Uncertainties</th>
+      </tr>
+    </thead>
+    <tbody id="reportsBody">
+      {% for report in reports %}
+      <tr>
+        <td><code>{{ report.case_id }}</code></td>
+        <td>{{ report.executive_summary }}</td>
+        <td>{{ report.recommended_actions }}</td>
+        <td>{{ report.uncertainties }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4">No reports yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<script>
+  async function refreshReports() {
+    try {
+      const res = await fetch("/v1/reports/recent");
+      const data = await res.json();
+      const rows = Array.isArray(data) ? data.slice(0, 20) : [];
+      const html = rows.length ? rows.map((item) => `
+        <tr>
+          <td><code>${item.case_id ?? "-"}</code></td>
+          <td>${item.executive_summary ?? "-"}</td>
+          <td>${item.recommended_actions ?? "-"}</td>
+          <td>${item.uncertainties ?? "-"}</td>
+        </tr>
+      `).join("") : `<tr><td colspan="4">No reports yet.</td></tr>`;
+      document.getElementById("reportsBody").innerHTML = html;
+    } catch (err) {
+      console.error("refreshReports", err);
+    }
+  }
+  setInterval(refreshReports, 2500);
+</script>
+{% endblock %}

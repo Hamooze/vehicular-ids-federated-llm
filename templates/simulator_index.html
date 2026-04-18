@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Traffic Simulator (Alpha)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050812;
+            --glass-bg: rgba(16, 21, 35, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --primary: #00F0FF;
+            --secondary: #BF00FF;
+            --success: #00FF9D;
+            --danger: #FF0055;
+            --warning: #FFE600;
+            --text-main: #FFFFFF;
+            --text-muted: #8A94A6;
+            --card-radius: 15px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.05), transparent 60%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 30px;
+            align-items: stretch;
+            flex-grow: 1;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+
+        .radar-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        #radarCanvas {
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 1;
+            background: rgba(0,0,0,0.3);
+            border-radius: 50%;
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 50px rgba(0, 240, 255, 0.05) inset;
+        }
+
+        /* Scanline animation */
+        .scanline {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--success));
+            transform-origin: left center;
+            animation: radar-spin 4s linear infinite;
+            z-index: 10;
+        }
+
+        @keyframes radar-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .v-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            max-height: 700px;
+            padding-right: 5px;
+        }
+        
+        .v-list::-webkit-scrollbar { width: 6px; }
+        .v-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        .v-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+
+        .v-card {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--glass-border);
+            border-left: 3px solid var(--primary);
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .v-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .v-id { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.1rem; color: var(--text-main); }
+        
+        .badge {
+            font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; font-weight: 700; letter-spacing: 0.5px;
+        }
+        .b-ok { background: rgba(0,255,157,0.15); color: var(--success); border: 1px solid rgba(0,255,157,0.3); }
+        .b-err { background: rgba(255,0,85,0.15); color: var(--danger); border: 1px solid rgba(255,0,85,0.3); }
+
+        .v-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            row-gap: 4px;
+        }
+        .v-val { color: var(--primary); font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+
+        @media (max-width: 1000px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <h1>SIMULATION THEATER</h1>
+            <p style="color: var(--text-muted); margin-top: 4px;">Dynamic multi-agent vehicular traffic synthesis (Max: 10)</p>
+        </div>
+        <div>
+            <span style="color: var(--success); font-weight: 700; font-family: 'Space Grotesk', sans-serif;">● ENGINE ONLINE</span>
+        </div>
+    </div>
+
+    <div class="layout">
+        <div class="glass-card radar-container">
+            <h2 style="position:absolute; top: 15px; left: 20px; font-family:'Space Grotesk', sans-serif; font-size:1.1rem; opacity: 0.8;">Sector Map</h2>
+            <div class="scanline"></div>
+            <canvas id="radarCanvas" width="1000" height="1000"></canvas>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 30px;">
+            <div class="glass-card">
+                <h2 style="font-family:'Space Grotesk', sans-serif; font-size:1.2rem; margin-bottom: 20px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; color: var(--danger);">GPS Spoofing Controls</h2>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div>
+                        <label style="color: var(--text-muted); font-size: 0.9rem;">Target Victim Zone</label>
+                        <select id="spoofSource" style="width: 100%; padding: 10px; border-radius: 5px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); margin-top: 5px;">
+                            <option value="1">Area 1 (Top-Right)</option>
+                            <option value="2">Area 2 (Bottom-Right)</option>
+                            <option value="3">Area 3 (Bottom-Left)</option>
+                            <option value="4">Area 4 (Top-Left)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="color: var(--text-muted); font-size: 0.9rem;">Spoof Coordinates To</label>
+                        <select id="spoofTarget" style="width: 100%; padding: 10px; border-radius: 5px; background: rgba(0,0,0,0.5); color: white; border: 1px solid var(--glass-border); margin-top: 5px;">
+                            <option value="1">Area 1 (Top-Right)</option>
+                            <option value="2">Area 2 (Bottom-Right)</option>
+                            <option value="3">Area 3 (Bottom-Left)</option>
+                            <option value="4">Area 4 (Top-Left)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button onclick="applySpoof()" style="flex: 1; padding: 12px; background: rgba(255, 0, 85, 0.2); border: 1px solid var(--danger); color: var(--danger); font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.3s;" onmouseover="this.style.background='rgba(255,0,85,0.4)'" onmouseout="this.style.background='rgba(255,0,85,0.2)'">LAUNCH SPOOF</button>
+                        <button onclick="stopSpoof()" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--text-muted); color: white; font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">STOP SPOOF</button>
+                    </div>
+                    <div id="spoofStatus" style="font-size: 0.85rem; color: var(--warning); margin-top: 5px; font-weight: bold;"></div>
+                </div>
+            </div>
+
+            <div class="glass-card" style="flex-grow: 1;">
+                <h2 style="font-family:'Space Grotesk', sans-serif; font-size:1.2rem; margin-bottom: 20px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;">Active Units</h2>
+                <div class="v-list" id="vList">
+                    <!-- Vehicle cards appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('radarCanvas');
+        const ctx = canvas.getContext('2d');
+        const vList = document.getElementById('vList');
+        
+        const W = canvas.width;
+        const H = canvas.height;
+
+        let vehicles = [];
+
+        let spoofState = { source: null, target: null };
+
+        async function fetchState() {
+            try {
+                const res = await fetch('/api/state');
+                const data = await res.json();
+                vehicles = data.vehicles || [];
+                if (data.spoof_config) {
+                    spoofState = data.spoof_config;
+                }
+                updateUI();
+                drawRadar();
+            } catch(e) {
+                console.error("API Error:", e);
+            }
+        }
+
+        async function applySpoof() {
+            const src = document.getElementById('spoofSource').value;
+            const tgt = document.getElementById('spoofTarget').value;
+            await fetch('/api/spoof', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source: parseInt(src), target: parseInt(tgt) })
+            });
+            document.getElementById('spoofStatus').innerText = `SPOOFING ACTIVE: Area ${src} -> Area ${tgt}`;
+        }
+
+        async function stopSpoof() {
+            await fetch('/api/spoof', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source: null, target: null })
+            });
+            document.getElementById('spoofStatus').innerText = '';
+        }
+
+        function drawRadar() {
+            ctx.clearRect(0, 0, W, H);
+            
+            // Draw grid & track
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
+            ctx.lineWidth = 1.5;
+            
+            // Concentric circles
+            ctx.beginPath(); ctx.arc(W/2, H/2, 150, 0, 2*Math.PI); ctx.stroke();
+            ctx.beginPath(); ctx.arc(W/2, H/2, 300, 0, 2*Math.PI); ctx.stroke();
+            ctx.beginPath(); ctx.arc(W/2, H/2, 450, 0, 2*Math.PI); ctx.stroke();
+            
+            // Crosshairs
+            ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
+
+            // Track (radius 300 corresponding to backend)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 40;
+            ctx.beginPath(); ctx.arc(W/2, H/2, 300, 0, 2*Math.PI); ctx.stroke();
+
+            // Zone Labels
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.font = '700 30px "Space Grotesk"';
+            ctx.fillText("AREA 1", 750, 250);
+            ctx.fillText("AREA 2", 750, 750);
+            ctx.fillText("AREA 3", 150, 750);
+            ctx.fillText("AREA 4", 150, 250);
+
+            // Draw vehicles
+            vehicles.forEach(v => {
+                // Backend coords are 0-1000 roughly
+                const cx = v.x;
+                const cy = v.y;
+
+                // Blip glow
+                ctx.beginPath();
+                ctx.arc(cx, cy, 15, 0, 2*Math.PI);
+                ctx.fillStyle = 'rgba(0, 255, 157, 0.2)';
+                ctx.fill();
+
+                // Blip core
+                ctx.beginPath();
+                ctx.arc(cx, cy, 6, 0, 2*Math.PI);
+                ctx.fillStyle = '#00FF9D';
+                ctx.fill();
+                
+                // Label
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '16px "Space Grotesk"';
+                ctx.fillText(v.vehicle_id, cx + 15, cy - 10);
+                
+                // Vector line (simulating heading)
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + Math.cos(v.angle)*30, cy + Math.sin(v.angle)*30);
+                ctx.strokeStyle = '#00FF9D';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        }
+
+        function updateUI() {
+            vList.innerHTML = vehicles.map(v => {
+                let bClass = 'b-ok';
+                let st = 'TRANSMITTING';
+                if (spoofState.source && v.status === 'SPOOFING') {
+                    bClass = 'b-err';
+                    st = 'SPOOFED_GPS';
+                }
+
+                return `
+                    <div class="v-card" style="${st === 'SPOOFED_GPS' ? 'border-left-color: var(--danger); background: rgba(255,0,85,0.05);' : ''}">
+                        <div class="v-header">
+                            <span class="v-id">${v.vehicle_id}</span>
+                            <span class="badge ${bClass}">${st}</span>
+                        </div>
+                        <div class="v-stats">
+                            <div>Speed: <span class="v-val">${v.speed.toFixed(1)} km/h</span></div>
+                            <div>Sent: <span class="v-val">${v.transmission_count} pkts</span></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        setInterval(fetchState, 500);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicular IDS Command Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #070b13;
+            --panel: #0f1524;
+            --panel-2: #0b1220;
+            --line: #25314a;
+            --text: #e7edf9;
+            --muted: #95a4c5;
+            --accent: #3b82f6;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --radius: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            background: radial-gradient(circle at 0% 0%, #101a30, #070b13 45%), var(--bg);
+            color: var(--text);
+            font-family: "Outfit", sans-serif;
+        }
+
+        .app {
+            min-height: 100vh;
+            height: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px 14px;
+            background: rgba(15, 21, 36, 0.9);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            min-height: 72px;
+        }
+
+        .title-wrap {
+            flex: 1 1 320px;
+            min-width: 280px;
+        }
+
+        .title-wrap h1 {
+            margin: 0;
+            font-family: "Sora", sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .title-wrap p {
+            margin: 3px 0 0 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+            flex: 1 1 320px;
+        }
+
+        .chip {
+            border: 1px solid var(--line);
+            background: rgba(11, 18, 32, 0.85);
+            color: var(--muted);
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .workspace {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: minmax(330px, 390px) minmax(0, 1fr);
+            gap: 12px;
+            height: auto;
+            align-items: start;
+        }
+
+        .main-shell {
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: clamp(190px, 18vw, 240px) minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+        }
+
+        .side-nav {
+            min-height: 0;
+            background: rgba(15, 21, 36, 0.92);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .side-nav-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--muted);
+            font-weight: 700;
+            padding: 2px 4px;
+        }
+
+        .nav-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            text-align: left;
+            padding: 10px 11px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: rgba(11, 18, 32, 0.88);
+            color: #cfd8ee;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .nav-btn.active {
+            border-color: rgba(59, 130, 246, 0.55);
+            background: rgba(59, 130, 246, 0.17);
+            color: #eff5ff;
+            box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);
+        }
+
+        .nav-btn .sub {
+            display: block;
+            margin-top: 2px;
+            font-size: 0.73rem;
+            font-weight: 500;
+            color: var(--muted);
+            letter-spacing: 0;
+        }
+
+        .content-shell {
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .view-page {
+            display: none;
+            min-height: 0;
+            height: auto;
+        }
+
+        .view-page.active {
+            display: block;
+        }
+
+        .view-page.embed-view.active {
+            height: calc(100vh - 156px);
+            min-height: 540px;
+        }
+
+        .panel {
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 21, 36, 0.92);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+        }
+
+        .panel-head {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-head h2 {
+            margin: 0;
+            font-family: "Sora", sans-serif;
+            font-size: 0.98rem;
+            font-weight: 600;
+        }
+
+        .panel-body {
+            padding: 10px;
+            min-height: 0;
+        }
+
+        .controls-body {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: visible;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field label {
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        input,
+        select,
+        textarea,
+        button {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--panel-2);
+            color: var(--text);
+            font-family: "Outfit", sans-serif;
+            font-size: 0.88rem;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 9px 10px;
+        }
+
+        textarea {
+            resize: none;
+            min-height: 72px;
+            max-height: 96px;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .query-actions {
+            margin-top: 5px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .query-actions button {
+            min-height: 44px;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 700;
+            padding: 9px 10px;
+            transition: 0.15s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+        }
+
+        .btn-normal {
+            border-color: rgba(59, 130, 246, 0.5);
+            background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+        }
+
+        .btn-ddos {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: linear-gradient(135deg, #b91c1c, #ef4444);
+        }
+
+        .btn-gps {
+            border-color: rgba(245, 158, 11, 0.5);
+            background: linear-gradient(135deg, #b45309, #f59e0b);
+        }
+
+        .btn-prompt {
+            border-color: rgba(99, 102, 241, 0.5);
+            background: linear-gradient(135deg, #4338ca, #6366f1);
+        }
+
+        .btn-indirect {
+            border-color: rgba(168, 85, 247, 0.5);
+            background: linear-gradient(135deg, #7e22ce, #a855f7);
+        }
+
+        .btn-v2x {
+            border-color: rgba(14, 165, 233, 0.5);
+            background: linear-gradient(135deg, #0284c7, #0ea5e9);
+        }
+
+        .btn-poison {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: linear-gradient(135deg, #059669, #10b981);
+        }
+
+
+        .btn-stop {
+            border-color: rgba(149, 164, 197, 0.45);
+            background: rgba(149, 164, 197, 0.12);
+        }
+
+        .btn-secondary {
+            border-color: rgba(149, 164, 197, 0.45);
+            background: rgba(149, 164, 197, 0.1);
+        }
+
+        .prompt-master {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 10px;
+            background: rgba(7, 11, 19, 0.42);
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+        .prompt-master-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .prompt-master-title {
+            font-size: 0.83rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #cfd8ee;
+        }
+
+        .prompt-master-status {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--muted);
+            background: rgba(149, 164, 197, 0.08);
+            white-space: nowrap;
+        }
+
+        .prompt-master-status.ok {
+            color: var(--success);
+            border-color: rgba(34, 197, 94, 0.45);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .prompt-master-status.warn {
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.45);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .prompt-master-output {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 9px;
+            background: rgba(11, 18, 32, 0.85);
+            font-size: 0.79rem;
+            line-height: 1.4;
+            color: #d6e0f8;
+            max-height: 130px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+
+        .prompt-master-reason {
+            color: var(--muted);
+            font-size: 0.75rem;
+            line-height: 1.35;
+        }
+
+        .prompt-master-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .prompt-master-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 7px;
+        }
+
+        .prompt-master-option {
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: rgba(11, 18, 32, 0.88);
+            color: #d7e0f6;
+            padding: 8px;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .prompt-master-option .option-title {
+            font-size: 0.73rem;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .prompt-master-option .option-desc {
+            font-size: 0.68rem;
+            color: var(--muted);
+            line-height: 1.25;
+        }
+
+        .right-body {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: auto auto minmax(0, 1fr);
+            gap: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+        }
+
+        .stat-card {
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .stat-value {
+            font-family: "Sora", sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+        }
+
+        .info-grid {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 8px;
+        }
+
+        .subpanel {
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px;
+            gap: 8px;
+        }
+
+        .subpanel-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .scrollbox {
+            min-height: 0;
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: rgba(7, 11, 19, 0.45);
+            padding: 8px;
+        }
+
+        .node-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: start;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            padding: 8px;
+            margin-bottom: 7px;
+            background: rgba(15, 21, 36, 0.65);
+        }
+
+        .node-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .node-title {
+            font-weight: 700;
+            font-size: 0.86rem;
+        }
+
+        .node-meta {
+            color: var(--muted);
+            font-size: 0.74rem;
+            margin-top: 2px;
+        }
+
+        .node-metrics {
+            margin-top: 6px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .metric-pill {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 3px 7px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-pill.on {
+            color: var(--success);
+            border-color: rgba(34, 197, 94, 0.45);
+            background: rgba(34, 197, 94, 0.12);
+        }
+
+        .metric-pill.off {
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.45);
+            background: rgba(239, 68, 68, 0.12);
+        }
+
+        .node-actions {
+            margin-top: 7px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .node-btn {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 5px 8px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            background: rgba(149, 164, 197, 0.12);
+            color: #dce5f8;
+            cursor: pointer;
+        }
+
+        .node-btn:hover {
+            filter: brightness(1.08);
+        }
+
+        .node-btn.soft {
+            border-color: rgba(59, 130, 246, 0.45);
+            background: rgba(59, 130, 246, 0.16);
+        }
+
+        .node-btn.hard {
+            border-color: rgba(245, 158, 11, 0.45);
+            background: rgba(245, 158, 11, 0.14);
+        }
+
+        .node-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-pill {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            white-space: nowrap;
+        }
+
+        .status-pill.online {
+            color: var(--success);
+            border-color: rgba(34, 197, 94, 0.45);
+            background: rgba(34, 197, 94, 0.13);
+        }
+
+        .status-pill.degraded {
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.45);
+            background: rgba(245, 158, 11, 0.13);
+        }
+
+        .status-pill.offline,
+        .status-pill.error {
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.45);
+            background: rgba(239, 68, 68, 0.13);
+        }
+
+        .fed-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
+            gap: 6px;
+        }
+
+        .fed-metric {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 7px;
+            text-align: center;
+        }
+
+        .fed-metric .v {
+            font-size: 1.04rem;
+            font-weight: 700;
+            font-family: "Sora", sans-serif;
+        }
+
+        .fed-metric .k {
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .summary {
+            font-size: 0.79rem;
+            color: #c6d1ea;
+            line-height: 1.4;
+            min-height: 0;
+            overflow: auto;
+        }
+
+        .bottom-grid {
+            min-height: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+            gap: 8px;
+        }
+
+        .master-reply {
+            min-height: 0;
+            max-height: 100%;
+            overflow: auto;
+            background: rgba(7, 11, 19, 0.45);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 8px;
+            font-size: 0.78rem;
+            line-height: 1.4;
+            color: #d6e0f8;
+        }
+
+        .log-line {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            font-size: 0.73rem;
+            margin-bottom: 5px;
+            color: #cfd8ee;
+            line-height: 1.35;
+        }
+
+        .log-line:last-child {
+            margin-bottom: 0;
+        }
+
+        .log-line.info { color: #9fc5ff; }
+        .log-line.success { color: #77e5a2; }
+        .log-line.warning { color: #ffd083; }
+        .log-line.error { color: #ff9cae; }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .embed-panel {
+            height: 100%;
+            min-height: 0;
+        }
+
+        .embed-panel .panel-body {
+            flex: 1;
+            min-height: 0;
+            height: auto !important;
+        }
+
+        .panel-frame {
+            width: 100%;
+            height: 100%;
+            min-height: 520px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: rgba(7, 11, 19, 0.45);
+        }
+
+        .embed-hint {
+            height: 100%;
+            display: grid;
+            place-items: center;
+            color: var(--muted);
+            font-size: 0.88rem;
+            text-align: center;
+            padding: 18px;
+            border: 1px dashed var(--line);
+            border-radius: 10px;
+        }
+
+        @media (max-width: 1200px) {
+            html,
+            body {
+                overflow: auto;
+            }
+
+            .main-shell {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .side-nav {
+                position: sticky;
+                top: 10px;
+                z-index: 5;
+            }
+
+            .nav-stack {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .workspace {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .view-page.embed-view.active {
+                height: 72vh;
+                min-height: 500px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .title-wrap,
+            .chip-row {
+                flex: 1 1 100%;
+            }
+
+            .chip-row {
+                justify-content: flex-start;
+            }
+
+            .panel-head {
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .query-actions,
+            .prompt-master-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .app {
+                padding: 10px;
+                gap: 10px;
+            }
+
+            .row-2,
+            .button-grid,
+            .nav-stack {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                padding: 10px;
+            }
+
+            .chip {
+                width: 100%;
+            }
+
+            .prompt-master-options {
+                grid-template-columns: 1fr;
+            }
+
+            .view-page.embed-view.active {
+                height: 68vh;
+                min-height: 420px;
+            }
+
+            .panel-frame {
+                min-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="topbar">
+            <div class="title-wrap">
+                <h1>Vehicular IDS Command Panel</h1>
+                <p>IDS Node A (DDoS Specialist) · IDS Node B (GPS Specialist) · Federated Learning Coordinator</p>
+            </div>
+            <div class="chip-row">
+                <span class="chip" id="adminHost">host: -</span>
+                <span class="chip">Node A = DDoS Specialist</span>
+                <span class="chip">Node B = GPS Spoof Specialist</span>
+                <span class="chip">Federated cross-learning active</span>
+            </div>
+        </header>
+
+        <div class="main-shell">
+            <aside class="side-nav">
+                <div class="side-nav-title">Navigation</div>
+                <div class="nav-stack">
+                    <button class="nav-btn active" data-view="command" onclick="activateView('command')">
+                        Command Center
+                        <span class="sub">Threat controls + telemetry</span>
+                    </button>
+                    <button class="nav-btn" data-view="live" onclick="activateView('live')">
+                        Live Monitor
+                        <span class="sub">Unified IDS dashboard</span>
+                    </button>
+                    <button class="nav-btn" data-view="federated" onclick="activateView('federated')">
+                        Federated Lab
+                        <span class="sub">FL controls and rounds</span>
+                    </button>
+                    <button class="nav-btn" data-view="vehicle" onclick="activateView('vehicle')">
+                        Vehicle Console
+                        <span class="sub">Vehicle telemetry panel</span>
+                    </button>
+                </div>
+            </aside>
+
+            <div class="content-shell">
+                <section id="view-command" class="view-page active">
+                    <main class="workspace">
+                        <section class="panel">
+                            <div class="panel-head">
+                                <h2>Threat Simulation Controls</h2>
+                            </div>
+                            <div class="panel-body controls-body">
+                                <div class="field">
+                                    <label for="vehicleSelect">Source Vehicle</label>
+                                    <select id="vehicleSelect">
+                                        <option value="V001">V001</option>
+                                        <option value="V002">V002</option>
+                                        <option value="V003">V003</option>
+                                        <option value="custom">Custom ID</option>
+                                    </select>
+                                </div>
+                                <div class="field" id="customVehicleWrap" style="display:none;">
+                                    <label for="customVehicle">Custom Vehicle ID</label>
+                                    <input id="customVehicle" type="text" value="V-CUSTOM-01">
+                                </div>
+                                <div class="row-2">
+                                    <div class="field">
+                                        <label for="duration">Duration (seconds)</label>
+                                        <input id="duration" type="number" min="1" max="600" value="6">
+                                    </div>
+                                    <div class="field">
+                                        <label for="packetCount">Packet Count</label>
+                                        <input id="packetCount" type="number" min="1" max="5000" value="20">
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label for="targetServer">Target Edge Node</label>
+                                    <select id="targetServer">
+                                        <option value="both">Both Edge Nodes</option>
+                                        <option value="A">Edge Node 1 (DDoS)</option>
+                                        <option value="B">Edge Node 2 (GPS Spoof)</option>
+                                    </select>
+                                </div>
+                                <div class="button-grid">
+                                    <button class="btn-normal" onclick="sendNormalTraffic()">Send Normal</button>
+                                    <button class="btn-ddos" onclick="launchDDoSAttack()">Launch DDoS</button>
+                                    <button class="btn-gps" onclick="launchGPSSpoof()">Launch GPS Spoof</button>
+                                    <button class="btn-prompt" onclick="launchPromptInjection()">Prompt Injection</button>
+                                    <button class="btn-indirect" onclick="launchIndirectPromptInjection()">Indirect Prompt</button>
+                                    <button class="btn-v2x" onclick="launchV2XExploitation()">V2X Exploitation</button>
+                                    <button class="btn-poison" onclick="launchDataPoisoning()">Data Poisoning</button>
+                                    <button class="btn-stop" onclick="stopAttack()">Stop Attack</button>
+                                </div>
+                                <div class="field">
+                                    <label for="masterQuestion">Ask Cloud Master</label>
+                                    <textarea id="masterQuestion" placeholder="Ask for current network risk and actions...">What is happening now and what should I do next?</textarea>
+                                </div>
+                                <div class="query-actions">
+                                    <button class="btn-secondary" onclick="askMasterAi()">Query Master AI</button>
+                                    <button id="autoAiToggle" class="btn-secondary" onclick="toggleAutoAi()">Auto-Detect: OFF</button>
+                                </div>
+                                <div class="prompt-master">
+                                    <div class="prompt-master-head">
+                                        <span class="prompt-master-title">Prompt Master</span>
+                                        <span id="promptMasterStatus" class="prompt-master-status">Ready</span>
+                                    </div>
+                                    <div class="row-2">
+                                        <div class="field">
+                                            <label for="promptFocus">Recommendation Focus</label>
+                                            <select id="promptFocus">
+                                                <option value="auto">Auto (live threat)</option>
+                                                <option value="ddos">DDoS</option>
+                                                <option value="gps_spoof">GPS Spoofing</option>
+                                                <option value="prompt_injection">Prompt Injection</option>
+                                                <option value="indirect_prompt_injection">Indirect Prompt Injection</option>
+                                                <option value="v2x_exploitation">V2X Exploitation</option>
+                                                <option value="data_poisoning">Data Poisoning</option>
+                                            </select>
+                                        </div>
+                                        <div class="field">
+                                            <label for="promptMasterGenerate">Generate Recommendation</label>
+                                            <button id="promptMasterGenerate" class="btn-secondary" onclick="generatePromptMasterRecommendation()">Generate Prompt</button>
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label for="promptMasterRecommendation">Recommended Prompt</label>
+                                        <div id="promptMasterRecommendation" class="prompt-master-output">Press "Generate Prompt" to create an operator-ready query from live context.</div>
+                                    </div>
+                                    <div id="promptMasterReason" class="prompt-master-reason">
+                                        Prompt Master optimizes your question for faster, more actionable AI responses.
+                                    </div>
+                                    <div class="prompt-master-actions">
+                                        <button class="btn-secondary" onclick="applyPromptMasterRecommendation()">Use Recommended Prompt</button>
+                                        <button class="btn-secondary" onclick="runRecommendedPrompt()">Use + Query Master AI</button>
+                                    </div>
+                                    <div id="promptMasterOptions" class="prompt-master-options"></div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="panel">
+                            <div class="panel-head">
+                                <h2>Operations Overview</h2>
+                                <button class="btn-secondary" onclick="manualRefresh()" style="padding:7px 10px;">Refresh</button>
+                            </div>
+                            <div class="panel-body right-body">
+                                <div class="stats-grid">
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="packetsSent">0</div>
+                                        <div class="stat-label">Packets Sent</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="packetsDelivered" style="color: var(--success);">0</div>
+                                        <div class="stat-label">Delivered</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="packetsFailed" style="color: var(--danger);">0</div>
+                                        <div class="stat-label">Failed</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="attackStatus">STANDBY</div>
+                                        <div class="stat-label">Attack State</div>
+                                    </div>
+                                </div>
+
+                                <div class="info-grid">
+                                    <div class="subpanel">
+                                        <div class="subpanel-title">Node Topology</div>
+                                        <div id="systemStatus" class="scrollbox"></div>
+                                    </div>
+                                    <div class="subpanel">
+                                        <div class="subpanel-title">Federated Snapshot</div>
+                                        <div class="fed-grid" id="fedGridContainer">
+                                            <div class="fed-metric"><div class="v" id="fedRound">-</div><div class="k">Round</div></div>
+                                            <div class="fed-metric"><div class="v" id="fedUpdates">-</div><div class="k">Updates</div></div>
+                                        </div>
+                                        <div id="federatedSummary" class="summary">
+                                            Waiting for federated state...
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bottom-grid">
+                                    <div class="subpanel">
+                                        <div class="subpanel-title">Master AI Response</div>
+                                        <div id="masterAiReply" class="master-reply">Waiting for master AI response...</div>
+                                    </div>
+                                    <div class="subpanel">
+                                        <div class="subpanel-title">Event Terminal</div>
+                                        <div id="activityLog" class="scrollbox">
+                                            <div class="log-line info">[INIT] Attack client interface online.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </main>
+                </section>
+
+                <section id="view-live" class="view-page embed-view">
+                    <div class="panel embed-panel">
+                        <div class="panel-head">
+                            <h2>Live Monitor</h2>
+                            <a id="liveOpenLink" class="btn-secondary" target="_blank" rel="noopener noreferrer" style="padding:7px 10px; text-decoration:none;">Open in new tab</a>
+                        </div>
+                        <div class="panel-body" style="height:100%;">
+                            <iframe id="liveFrame" class="panel-frame" title="Live Monitor"></iframe>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-federated" class="view-page embed-view">
+                    <div class="panel embed-panel">
+                        <div class="panel-head">
+                            <h2>Federated Lab</h2>
+                            <a id="fedOpenLink" class="btn-secondary" target="_blank" rel="noopener noreferrer" style="padding:7px 10px; text-decoration:none;">Open in new tab</a>
+                        </div>
+                        <div class="panel-body" style="height:100%;">
+                            <iframe id="federatedFrame" class="panel-frame" title="Federated Lab"></iframe>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-vehicle" class="view-page embed-view">
+                    <div class="panel embed-panel">
+                        <div class="panel-head">
+                            <h2>Vehicle Console</h2>
+                            <a id="vehicleOpenLink" class="btn-secondary" target="_blank" rel="noopener noreferrer" style="padding:7px 10px; text-decoration:none;">Open in new tab</a>
+                        </div>
+                        <div class="panel-body" style="height:100%;">
+                            <iframe id="vehicleFrame" class="panel-frame" title="Vehicle Console"></iframe>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const PANEL_PROTOCOL = window.location.protocol;
+        const PANEL_HOST = window.location.hostname;
+        const VIEW_ENDPOINTS = {
+            live: `${PANEL_PROTOCOL}//${PANEL_HOST}:8200/dashboard`,
+            federated: `${PANEL_PROTOCOL}//${PANEL_HOST}:8300/dashboard`,
+            vehicle: `${PANEL_PROTOCOL}//${PANEL_HOST}:5000/`,
+        };
+        const ATTACK_LABELS = {
+            ddos: "DDoS",
+            gps_spoof: "GPS Spoofing",
+            prompt_injection: "Prompt Injection",
+            indirect_prompt_injection: "Indirect Prompt Injection",
+            v2x_exploitation: "V2X Exploitation",
+            data_poisoning: "Data Poisoning",
+        };
+        let promptMasterState = {
+            recommended_prompt: "",
+            options: [],
+            attack_type: "",
+            attack_label: "No Active Attack",
+            mode: "auto",
+        };
+        let lastPromptMasterAttackType = "";
+        document.getElementById("adminHost").textContent = `host: ${window.location.host}`;
+
+        function activateView(viewName) {
+            const views = document.querySelectorAll(".view-page");
+            const navButtons = document.querySelectorAll(".nav-btn");
+            views.forEach((view) => view.classList.remove("active"));
+            navButtons.forEach((button) => button.classList.remove("active"));
+
+            const targetView = document.getElementById(`view-${viewName}`);
+            if (targetView) {
+                targetView.classList.add("active");
+            }
+
+            const activeNav = document.querySelector(`.nav-btn[data-view="${viewName}"]`);
+            if (activeNav) {
+                activeNav.classList.add("active");
+            }
+
+            if (viewName === "live") {
+                const frame = document.getElementById("liveFrame");
+                if (frame && !frame.src) frame.src = VIEW_ENDPOINTS.live;
+            } else if (viewName === "federated") {
+                const frame = document.getElementById("federatedFrame");
+                if (frame && !frame.src) frame.src = VIEW_ENDPOINTS.federated;
+            } else if (viewName === "vehicle") {
+                const frame = document.getElementById("vehicleFrame");
+                if (frame && !frame.src) frame.src = VIEW_ENDPOINTS.vehicle;
+            }
+        }
+
+        function appendLog(message, type = "info") {
+            const stamp = new Date().toLocaleTimeString("en-US", { hour12: false });
+            const line = document.createElement("div");
+            line.className = `log-line ${type}`;
+            line.textContent = `[${stamp}] ${message}`;
+            const container = document.getElementById("activityLog");
+            container.appendChild(line);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function selectedVehicleId() {
+            const selected = document.getElementById("vehicleSelect").value;
+            if (selected === "custom") {
+                const custom = (document.getElementById("customVehicle").value || "").trim();
+                return custom || "V-CUSTOM-01";
+            }
+            return selected;
+        }
+
+        function requestPayload() {
+            return {
+                vehicle_id: selectedVehicleId(),
+                duration_seconds: Number(document.getElementById("duration").value || 6),
+                packet_count: Number(document.getElementById("packetCount").value || 20),
+                target_server: document.getElementById("targetServer").value || "both",
+            };
+        }
+
+        function statusClass(status) {
+            const v = String(status || "offline").toLowerCase();
+            if (v === "online") return "online";
+            if (v === "degraded") return "degraded";
+            if (v === "error") return "error";
+            return "offline";
+        }
+
+        function esc(text) {
+            return String(text ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;");
+        }
+
+        function setPromptMasterStatus(text, tone = "") {
+            const el = document.getElementById("promptMasterStatus");
+            if (!el) return;
+            el.textContent = text;
+            el.classList.remove("ok", "warn");
+            if (tone === "ok") el.classList.add("ok");
+            if (tone === "warn") el.classList.add("warn");
+        }
+
+        function renderPromptMasterOptions(options = []) {
+            const container = document.getElementById("promptMasterOptions");
+            if (!container) return;
+            container.innerHTML = "";
+
+            if (!Array.isArray(options) || options.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "prompt-master-reason";
+                empty.textContent = "No alternate prompt options available.";
+                container.appendChild(empty);
+                return;
+            }
+
+            options.forEach((option, index) => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "prompt-master-option";
+                btn.addEventListener("click", () => applyPromptMasterOption(index));
+
+                const title = document.createElement("span");
+                title.className = "option-title";
+                title.textContent = String(option.title || `Option ${index + 1}`);
+
+                const desc = document.createElement("span");
+                desc.className = "option-desc";
+                desc.textContent = String(option.description || "Use this prompt style");
+
+                btn.appendChild(title);
+                btn.appendChild(desc);
+                container.appendChild(btn);
+            });
+        }
+
+        function applyPromptMasterOption(index) {
+            const options = Array.isArray(promptMasterState.options) ? promptMasterState.options : [];
+            const selected = options[index];
+            const prompt = selected ? String(selected.prompt || "").trim() : "";
+            if (!prompt) {
+                appendLog("Prompt option is empty.", "warning");
+                return;
+            }
+            document.getElementById("masterQuestion").value = prompt;
+            appendLog(`Prompt Master option selected: ${String(selected.title || `Option ${index + 1}`)}.`, "success");
+        }
+
+        function applyPromptMasterRecommendation() {
+            const prompt = String(promptMasterState.recommended_prompt || "").trim();
+            if (!prompt) {
+                appendLog("No Prompt Master recommendation yet. Generate one first.", "warning");
+                return false;
+            }
+            document.getElementById("masterQuestion").value = prompt;
+            appendLog("Recommended Prompt applied to query box.", "success");
+            return true;
+        }
+
+        async function runRecommendedPrompt() {
+            const applied = applyPromptMasterRecommendation();
+            if (!applied) return;
+            await askMasterAi();
+        }
+
+        async function generatePromptMasterRecommendation(logMessage = true) {
+            const questionField = document.getElementById("masterQuestion");
+            const question = String(questionField?.value || "").trim() || "What is happening now and what should I do next?";
+            const focus = String(document.getElementById("promptFocus")?.value || "auto");
+
+            setPromptMasterStatus("Generating...", "warn");
+            try {
+                const response = await fetch(`${API_URL}/api/master/prompt-master`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question, attack_type: focus }),
+                });
+                const data = await response.json();
+                if (!response.ok || data.ok === false) {
+                    throw new Error(data.error || "prompt_master_failed");
+                }
+
+                promptMasterState = {
+                    recommended_prompt: String(data.recommended_prompt || "").trim(),
+                    options: Array.isArray(data.options) ? data.options : [],
+                    attack_type: String(data.attack_type || ""),
+                    attack_label: String(data.attack_label || "No Active Attack"),
+                    mode: String(data.mode || "auto"),
+                };
+
+                const recommendation = document.getElementById("promptMasterRecommendation");
+                if (recommendation) {
+                    recommendation.textContent = promptMasterState.recommended_prompt || "No recommendation generated.";
+                }
+
+                const reason = document.getElementById("promptMasterReason");
+                if (reason) {
+                    reason.textContent = String(data.recommendation_reason || "Prompt recommendation generated.");
+                }
+
+                renderPromptMasterOptions(promptMasterState.options);
+
+                const modeLabel = promptMasterState.mode === "manual" ? "MANUAL" : "AUTO";
+                const statusLabel = `${promptMasterState.attack_label} · ${modeLabel}`;
+                setPromptMasterStatus(statusLabel, promptMasterState.attack_type ? "ok" : "warn");
+
+                if (logMessage) {
+                    appendLog(`Prompt Master updated (${promptMasterState.attack_label}).`, "success");
+                }
+            } catch (error) {
+                setPromptMasterStatus("Unavailable", "warn");
+                const reason = document.getElementById("promptMasterReason");
+                if (reason) {
+                    reason.textContent = `Prompt Master error: ${error.message}`;
+                }
+                if (logMessage) {
+                    appendLog(`Prompt Master failed: ${error.message}`, "error");
+                }
+            }
+        }
+
+        function renderEdgeControls(key, runtime) {
+            const enabled = runtime ? runtime.enabled !== false : true;
+            const revision = runtime ? (runtime.fl_revision ?? 0) : 0;
+
+            // Node A = DDoS specialist, Node B = GPS specialist
+            const isNodeA = key === "A";
+            const specialtyLabel = isNodeA ? "DDoS" : "GPS";
+            const crossLabel    = isNodeA ? "GPS"  : "DDoS";
+
+            const specScore  = runtime && typeof runtime.fl_score === "number"
+                ? runtime.fl_score.toFixed(2) : "-";
+            const crossScore = runtime && typeof runtime.fl_cross_score === "number"
+                ? runtime.fl_cross_score.toFixed(2) : "-";
+
+            const statusLabel = enabled ? "ACTIVE" : "OFFLINE";
+            const statusCls   = enabled ? "on" : "off";
+            const flRoundLabel = `FL Round: ${revision}`;
+
+            // Specialty score colour: green >=0.75, yellow >=0.55, red below
+            const specNum = parseFloat(specScore);
+            const specClass = isNaN(specNum) ? "on" : (specNum >= 0.75 ? "on" : (specNum >= 0.55 ? "" : "off"));
+
+            // Cross-type score colour: gate threshold is 0.80
+            // green = can alert on cross type (>=0.80), yellow = learning (>=0.55), red = blocked (<0.55)
+            const crossNum = parseFloat(crossScore);
+            const crossClass = isNaN(crossNum) ? "off" : (crossNum >= 0.80 ? "on" : (crossNum >= 0.55 ? "" : "off"));
+            // Show a lock icon when cross-type confidence is below the alert threshold
+            const crossLocked = !isNaN(crossNum) && crossNum < 0.80;
+            const crossPillLabel = `${crossLabel}: ${crossScore}${crossLocked ? " \uD83D\uDD12" : ""}`;
+
+            const actionLabel  = enabled ? "Disable Server" : "Enable Server";
+            const actionTarget = enabled ? "false" : "true";
+
+            return `
+                <div class="node-metrics">
+                    <span class="metric-pill ${statusCls}">${statusLabel}</span>
+                    <span class="metric-pill on">${flRoundLabel}</span>
+                    <span class="metric-pill ${specClass}">${specialtyLabel}: ${specScore}</span>
+                    <span class="metric-pill ${crossClass}">${crossPillLabel}</span>
+                </div>
+                <div class="node-actions">
+                    <button class="node-btn soft" onclick="toggleSoftNode('${key}', ${actionTarget})">${actionLabel}</button>
+                </div>
+            `;
+        }
+
+        function renderTopology(servers, edgeRuntime) {
+            const order = ["A", "B", "master", "orchestrator"];
+            const rows = [];
+            for (const key of order) {
+                const info = servers[key];
+                if (!info) continue;
+                const cls = statusClass(info.status);
+                const runtime = edgeRuntime && edgeRuntime[key] ? edgeRuntime[key] : {};
+                const title = esc(info.display_name || key);
+                const role = esc(info.role || "");
+                const controls = (key === "A" || key === "B")
+                    ? renderEdgeControls(key, runtime)
+                    : "";
+                rows.push(`
+                    <div class="node-row">
+                        <div>
+                            <div class="node-title">${title}</div>
+                            <div class="node-meta">${role}</div>
+                            ${controls}
+                        </div>
+                        <span class="status-pill ${cls}">${esc(String(info.status || "offline"))}</span>
+                    </div>
+                `);
+            }
+            document.getElementById("systemStatus").innerHTML = rows.join("") || '<div class="muted">No topology data.</div>';
+        }
+
+        async function checkServersStatus() {
+            try {
+                const [serversResponse, edgeStateResponse] = await Promise.all([
+                    fetch(`${API_URL}/api/servers/status`),
+                    fetch(`${API_URL}/api/edge-nodes/state`),
+                ]);
+                const serversData = await serversResponse.json();
+                const edgeStateData = await edgeStateResponse.json();
+                // Merge server health status into the enriched edge_nodes runtime data.
+                const edgeNodes = edgeStateData.edge_nodes || {};
+                const serverMap = serversData.servers || {};
+                for (const key of ["A", "B", "master", "orchestrator"]) {
+                    if (!serverMap[key]) serverMap[key] = {};
+                    // Propagate display_name and role from enriched edge node state.
+                    if (edgeNodes[key]) {
+                        serverMap[key].display_name = edgeNodes[key].display_name || serverMap[key].display_name;
+                        serverMap[key].role = edgeNodes[key].role || serverMap[key].role;
+                    }
+                }
+                renderTopology(serverMap, edgeNodes);
+            } catch (error) {
+                appendLog(`Topology check failed: ${error.message}`, "error");
+            }
+        }
+
+        async function toggleSoftNode(nodeKey, enabled) {
+            const stateLabel = (enabled === true || enabled === "true") ? "enable" : "disable";
+            appendLog(`${stateLabel} server request for IDS Node ${nodeKey}...`, "info");
+            try {
+                const response = await fetch(`${API_URL}/api/edge-nodes/soft-toggle`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ node: nodeKey, enabled: enabled === true || enabled === "true" }),
+                });
+                const data = await response.json();
+                if (!response.ok || data.ok === false) {
+                    throw new Error(data.error || "toggle_failed");
+                }
+                const state = (enabled === true || enabled === "true") ? "ENABLED" : "DISABLED";
+                appendLog(`IDS Node ${nodeKey} is now ${state}. Traffic fanout updated.`, "success");
+                await manualRefresh();
+            } catch (error) {
+                appendLog(`IDS Node ${nodeKey} toggle failed: ${error.message}`, "error");
+            }
+        }
+
+        async function updateFederatedStatus() {
+            try {
+                const [fedResponse, edgeResponse] = await Promise.all([
+                    fetch(`${API_URL}/api/federated/status`),
+                    fetch(`${API_URL}/api/edge-nodes/state`),
+                ]);
+                const data = await fedResponse.json();
+                const edgeData = await edgeResponse.json();
+
+                const currentRound = data.current_round || {};
+                const policy = data.policy || {};
+                const updates = Number(currentRound.update_count || 0);
+
+                // Use actual per-node EWA scores from the specialist nodes, not the
+                // global model's transient round averages which lag and don't match the topology.
+                const edgeNodes = edgeData.edge_nodes || {};
+                const nodeA = edgeNodes["A"] || {};
+                const nodeB = edgeNodes["B"] || {};
+                const ddosScore = typeof nodeA.fl_score === "number" ? nodeA.fl_score.toFixed(2) : "0.80";
+                const gpsScore  = typeof nodeB.fl_score === "number" ? nodeB.fl_score.toFixed(2) : "0.80";
+
+                const fedGrid = document.getElementById("fedGridContainer");
+                if (fedGrid) {
+                    fedGrid.innerHTML = `
+                        <div class="fed-metric"><div class="v">${String(currentRound.round_id ?? "-")}</div><div class="k">Round</div></div>
+                        <div class="fed-metric"><div class="v">${String(updates)}</div><div class="k">Updates</div></div>
+                        <div class="fed-metric"><div class="v">${ddosScore}</div><div class="k">DDoS</div></div>
+                        <div class="fed-metric"><div class="v">${gpsScore}</div><div class="k">GPS</div></div>
+                    `;
+                }
+
+                const participants = (currentRound.node_participants || []).join(", ") || "none";
+                const branches = data.detection_branches || {};
+                const summary = [
+                    `Federated online: ${data.federated_online ? "YES" : "NO"}`,
+                    `Participants: ${participants}`,
+                    `Policy: ${policy.recommendation || "No policy recommendation yet."}`,
+                    `Branches: ddos=${branches.ddos_enabled !== false ? "ON" : "OFF"}, gps=${branches.gps_enabled !== false ? "ON" : "OFF"}`,
+                ].join("\n");
+                document.getElementById("federatedSummary").textContent = summary;
+            } catch (error) {
+                document.getElementById("federatedSummary").textContent = `Federated status error: ${error.message}`;
+                appendLog(`Federated status fetch failed: ${error.message}`, "error");
+            }
+        }
+
+        async function askMasterAi(isAuto = false) {
+            const question = (document.getElementById("masterQuestion").value || "").trim();
+            if (!question) {
+                if (!isAuto) appendLog("Please enter a question for master AI.", "warning");
+                return;
+            }
+            if (!isAuto) document.getElementById("masterAiReply").textContent = "Querying master AI...";
+            try {
+                const response = await fetch(`${API_URL}/api/master/chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question }),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || "master_ai_query_failed");
+
+                // --- Format response ---
+                const alertLvl = String(result.alert_level || "normal").toUpperCase();
+
+                // Attack type labeling across all supported simulations.
+                const rawType = String(result.attack_type || "").toLowerCase();
+                const attackLabel = ATTACK_LABELS[rawType] || "None Detected";
+
+                const detectedBy = String(result.detected_by || "-");
+                const flScoreA = typeof result.fl_score_a === "number" ? result.fl_score_a.toFixed(2) : "-";
+                const flScoreB = typeof result.fl_score_b === "number" ? result.fl_score_b.toFixed(2) : "-";
+                const revA = typeof result.node_a_revision === "number" ? result.node_a_revision : "-";
+                const revB = typeof result.node_b_revision === "number" ? result.node_b_revision : "-";
+
+                const knownAttack = Object.prototype.hasOwnProperty.call(ATTACK_LABELS, rawType);
+                const recommendedPrompt = String(result.recommended_prompt || "").trim();
+
+                // Situation: use summary as-is (LLM provides 1-3 sentences).
+                const situation = (result.summary || "No current threat summary available.").trim();
+
+                // Mitigation: first 3 recommended actions joined as a paragraph.
+                const rawActions = Array.isArray(result.recommended_actions)
+                    ? result.recommended_actions : [];
+                const mitigation = rawActions.length
+                    ? rawActions.slice(0, 3)
+                        .map(a => String(a).replace(/^[-•*\d.]+\s*/, "").trim())
+                        .filter(Boolean)
+                        .join(" ")
+                    : "No mitigation actions available.";
+
+                let lines;
+                if (knownAttack) {
+                    // Active attack — full alert format.
+                    lines = [
+                        `${alertLvl} | Attack: ${attackLabel} | Detected by: IDS Node ${detectedBy}`,
+                        `FL Score — Node A (DDoS): ${flScoreA} (round ${revA})  |  Node B (GPS): ${flScoreB} (round ${revB})`,
+                        ``,
+                        situation,
+                        ``,
+                        mitigation + (mitigation.endsWith(".") ? "" : "."),
+                    ];
+                    if (recommendedPrompt) {
+                        lines.push("", `Recommended Operator Prompt:`, recommendedPrompt);
+                    }
+                } else {
+                    // No active attack — idle status format, clearly distinct from alert format.
+                    lines = [
+                        `SYSTEM STATUS: NORMAL — No active threat detected`,
+                        `FL Score — Node A (DDoS): ${flScoreA} (round ${revA})  |  Node B (GPS): ${flScoreB} (round ${revB})`,
+                        ``,
+                        situation,
+                    ];
+                    if (recommendedPrompt) {
+                        lines.push("", `Recommended Operator Prompt:`, recommendedPrompt);
+                    }
+                }
+                // Auto-detect: only update the panel when there is an active attack.
+                // Idle/no-attack responses are silently dropped during auto polling.
+                if (isAuto && !knownAttack) return;
+
+                document.getElementById("masterAiReply").textContent = lines.join("\n");
+                if (recommendedPrompt) {
+                    promptMasterState.recommended_prompt = recommendedPrompt;
+                    const recommendation = document.getElementById("promptMasterRecommendation");
+                    if (recommendation) recommendation.textContent = recommendedPrompt;
+                }
+
+                if ((alertLvl === "CRITICAL" || alertLvl === "ELEVATED") && knownAttack) {
+                    appendLog(`[ALERT] ${alertLvl} — ${attackLabel} | Node ${detectedBy}`, "error");
+                } else if (!isAuto) {
+                    appendLog("Master AI response received.", "success");
+                }
+            } catch (error) {
+                document.getElementById("masterAiReply").textContent = `Master AI error: ${error.message}`;
+                if (!isAuto) appendLog(`Master AI query failed: ${error.message}`, "error");
+            }
+        }
+
+        let autoAiInterval = null;
+
+        function toggleAutoAi() {
+            const btn = document.getElementById("autoAiToggle");
+            if (autoAiInterval) {
+                clearInterval(autoAiInterval);
+                autoAiInterval = null;
+                btn.textContent = "Auto-Detect: OFF";
+                btn.style.borderColor = "";
+                btn.style.background = "";
+                btn.style.color = "";
+                appendLog("Auto-Detect monitoring stopped.", "info");
+            } else {
+                autoAiInterval = setInterval(() => {
+                    generatePromptMasterRecommendation(false);
+                    askMasterAi(true);
+                }, 15000);
+                btn.textContent = "Auto-Detect: ON";
+                btn.style.borderColor = "rgba(245, 158, 11, 0.5)";
+                btn.style.background = "rgba(245, 158, 11, 0.14)";
+                btn.style.color = "var(--warning)";
+                appendLog("Auto-Detect monitoring started. Master AI will evaluate operations every 15s.", "warning");
+                generatePromptMasterRecommendation(false);
+                askMasterAi(true);
+            }
+        }
+
+        async function sendNormalTraffic() {
+            const payload = requestPayload();
+            appendLog(`Sending normal traffic from ${payload.vehicle_id} -> ${payload.target_server}`, "info");
+            try {
+                const response = await fetch(`${API_URL}/api/send/normal-traffic`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || "normal_traffic_failed");
+                appendLog("Normal traffic accepted.", "success");
+                updateStats();
+            } catch (error) {
+                appendLog(`Normal traffic failed: ${error.message}`, "error");
+            }
+        }
+
+        async function launchAttack(endpoint, label, errorCode) {
+            const payload = requestPayload();
+            appendLog(`Launching ${label} simulation from ${payload.vehicle_id}`, "warning");
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || errorCode);
+                const targetInfo = Array.isArray(result.targets) && result.targets.length
+                    ? ` target=${result.targets.join(",")}`
+                    : "";
+                appendLog(`${label} simulation started.${targetInfo}`, "warning");
+                updateStats();
+            } catch (error) {
+                appendLog(`${label} launch failed: ${error.message}`, "error");
+            }
+        }
+
+        async function launchDDoSAttack() {
+            await launchAttack("/api/attack/ddos", "DDoS", "ddos_launch_failed");
+        }
+
+        async function launchGPSSpoof() {
+            await launchAttack("/api/attack/gps-spoof", "GPS spoof", "gps_launch_failed");
+        }
+
+        async function launchPromptInjection() {
+            await launchAttack("/api/attack/prompt-injection", "prompt injection", "prompt_injection_launch_failed");
+        }
+
+        async function launchIndirectPromptInjection() {
+            await launchAttack("/api/attack/indirect-prompt", "indirect prompt injection", "indirect_prompt_launch_failed");
+        }
+
+        async function launchV2XExploitation() {
+            await launchAttack("/api/attack/v2x-deception", "V2X exploitation", "v2x_launch_failed");
+        }
+
+        async function launchDataPoisoning() {
+            await launchAttack("/api/attack/data-poisoning", "data poisoning", "data_poisoning_launch_failed");
+        }
+
+
+        async function stopAttack() {
+            appendLog("Stopping attack simulation...", "info");
+            try {
+                const response = await fetch(`${API_URL}/api/attack/stop`, { method: "POST" });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || "stop_failed");
+                appendLog("Attack simulation stopped.", "success");
+                updateStats();
+            } catch (error) {
+                appendLog(`Failed to stop attack: ${error.message}`, "error");
+            }
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch(`${API_URL}/api/stats`);
+                const stats = await response.json();
+                document.getElementById("packetsSent").textContent = String(stats.total_packets_sent ?? 0);
+                document.getElementById("packetsDelivered").textContent = String(stats.packets_delivered ?? 0);
+                document.getElementById("packetsFailed").textContent = String(stats.packets_failed ?? 0);
+                const statusEl = document.getElementById("attackStatus");
+                const liveAttackType = stats.is_attacking ? String(stats.attack_type || "").toLowerCase() : "";
+                if (stats.is_attacking) {
+                    statusEl.textContent = String(stats.attack_type || "ENGAGED").toUpperCase();
+                    statusEl.style.color = "var(--danger)";
+                } else {
+                    statusEl.textContent = "STANDBY";
+                    statusEl.style.color = "var(--text)";
+                }
+
+                if (liveAttackType !== lastPromptMasterAttackType) {
+                    lastPromptMasterAttackType = liveAttackType;
+                    const focus = document.getElementById("promptFocus");
+                    if (focus && focus.value === "auto") {
+                        generatePromptMasterRecommendation(false);
+                    }
+                }
+            } catch (error) {
+                appendLog(`Stats refresh failed: ${error.message}`, "error");
+            }
+        }
+
+        function onVehicleModeChanged() {
+            const selected = document.getElementById("vehicleSelect").value;
+            const wrap = document.getElementById("customVehicleWrap");
+            wrap.style.display = selected === "custom" ? "block" : "none";
+        }
+
+        async function manualRefresh(logMessage = true) {
+            await Promise.all([
+                checkServersStatus(),
+                updateFederatedStatus(),
+                updateStats(),
+            ]);
+            if (logMessage) {
+                appendLog("Manual refresh completed.", "info");
+            }
+        }
+
+        document.getElementById("vehicleSelect").addEventListener("change", onVehicleModeChanged);
+        document.getElementById("promptFocus").addEventListener("change", () => {
+            generatePromptMasterRecommendation(false);
+        });
+        document.getElementById("masterQuestion").addEventListener("keydown", (event) => {
+            if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+                askMasterAi();
+            }
+        });
+
+        window.addEventListener("load", () => {
+            const liveLink = document.getElementById("liveOpenLink");
+            const fedLink = document.getElementById("fedOpenLink");
+            const vehicleLink = document.getElementById("vehicleOpenLink");
+            if (liveLink) liveLink.href = VIEW_ENDPOINTS.live;
+            if (fedLink) fedLink.href = VIEW_ENDPOINTS.federated;
+            if (vehicleLink) vehicleLink.href = VIEW_ENDPOINTS.vehicle;
+
+            activateView("command");
+            onVehicleModeChanged();
+            manualRefresh(false);
+            generatePromptMasterRecommendation(false);
+            setInterval(updateStats, 3500);
+            setInterval(checkServersStatus, 10000);
+            setInterval(updateFederatedStatus, 5000);
+        });
+    </script>
+</body>
+</html>

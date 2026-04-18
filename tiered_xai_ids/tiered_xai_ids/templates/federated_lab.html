@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .header { margin-bottom: 16px; }
+    .subtitle { color: #94a3b8; margin-top: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 10px; padding: 14px; }
+    .label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+    .value { margin-top: 6px; font-size: 20px; font-weight: 700; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+    input, textarea, button { background: #0b1220; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 8px; }
+    button { cursor: pointer; }
+    button:hover { background: #1e293b; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border-bottom: 1px solid #1f2937; text-align: left; padding: 8px; }
+    th { color: #93c5fd; }
+    .ok { color: #22c55e; }
+    .warn { color: #f59e0b; }
+    .err { color: #ef4444; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #0b1220; border: 1px solid #1f2937; border-radius: 8px; padding: 10px; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1 style="margin: 0;">{{ title }}</h1>
+      <p class="subtitle">{{ subtitle }}</p>
+      <div class="row">
+        <span id="ws-status" class="label">live: connecting</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">Learning Enabled</div>
+        <div class="value" id="learning-enabled">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Current Federated Round</div>
+        <div class="value" id="current-round">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Global Model Revision</div>
+        <div class="value" id="model-revision">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Latest Learning Result</div>
+        <div class="value" id="latest-result">-</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 12px;">
+      <div class="label">Learning Controls</div>
+      <div class="row">
+        <label><input id="toggle-enabled" type="checkbox"> Enabled</label>
+        <label><input id="toggle-auto" type="checkbox"> Auto Rounds</label>
+        <label>LR <input id="learning-rate" type="number" step="0.01" min="0.01" max="1.0" value="0.2"></label>
+        <label>Min Samples <input id="min-samples" type="number" min="1" max="2000" value="8"></label>
+        <label>Max Samples <input id="max-samples" type="number" min="1" max="2000" value="64"></label>
+        <button id="save-config">Save Config</button>
+        <button id="run-round">Run Manual Round</button>
+      </div>
+      <div class="row">
+        <span id="action-status" class="label"></span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 12px;">
+      <div class="label">Detection Branch Controls</div>
+      <div class="row">
+        <label><input id="toggle-ddos" type="checkbox"> DDoS branch enabled</label>
+        <label><input id="toggle-gps" type="checkbox"> GPS spoof branch enabled</label>
+        <button id="save-branches">Save Detection Toggles</button>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top: 12px;">
+      <div class="card">
+        <div class="label">DDoS Weights</div>
+        <pre id="ddos-weights">{}</pre>
+      </div>
+      <div class="card">
+        <div class="label">GPS Spoof Weights</div>
+        <pre id="gps-weights">{}</pre>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 12px;">
+      <div class="label">Node Training Results</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Node</th>
+            <th>Status</th>
+            <th>Samples</th>
+            <th>Loss</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody id="node-results"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    const PANEL_PROTOCOL = window.location.protocol;
+    const PANEL_HOST = window.location.hostname;
+    const ORCH_URL = `${PANEL_PROTOCOL}//${PANEL_HOST}:8100`;
+    let latestRoundResponse = null;
+    let socketRef = null;
+    let reconnectTimer = null;
+
+    function statusClass(value) {
+      if (value === "ok" || value === true || value === "ENABLED") return "ok";
+      if (value === "skipped" || value === "PARTIAL") return "warn";
+      return "err";
+    }
+
+    const SPECIALIST_NODES = new Set(["ids-node-a", "ids-node-b"]);
+
+    function renderNodeResults(items) {
+      const tbody = document.getElementById("node-results");
+      tbody.innerHTML = "";
+      const specialist = Array.isArray(items)
+        ? items.filter(i => SPECIALIST_NODES.has(i.node_id))
+        : [];
+      if (specialist.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No learning round executed yet.</td></tr>';
+        return;
+      }
+      specialist.forEach((item) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.node_id || "-"}</td>
+          <td class="${statusClass(item.status)}">${item.status || "-"}</td>
+          <td>${item.sample_count ?? 0}</td>
+          <td>${Number(item.avg_loss || 0).toFixed(4)}</td>
+          <td>${item.detail || ""}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function setStatus(message, kind) {
+      const el = document.getElementById("action-status");
+      el.textContent = message;
+      el.className = kind || "label";
+    }
+
+    function setWsStatus(text, cls) {
+      const el = document.getElementById("ws-status");
+      el.textContent = text;
+      el.className = cls || "label";
+    }
+
+    function toWsUrl(baseHttpUrl) {
+      const parsed = new URL(baseHttpUrl);
+      parsed.protocol = parsed.protocol === "https:" ? "wss:" : "ws:";
+      parsed.pathname = "/ws/live";
+      parsed.search = "";
+      parsed.hash = "";
+      return parsed.toString();
+    }
+
+    function applyLearningView(learning, detectionBranches) {
+      const config = learning.config || {};
+      const modelState = learning.model_state || {};
+      const currentRound = learning.current_round || {};
+      const latestResult = learning.latest_round_result || null;
+
+      document.getElementById("learning-enabled").textContent = config.enabled ? "ENABLED" : "DISABLED";
+      document.getElementById("learning-enabled").className = `value ${statusClass(config.enabled ? "ENABLED" : "DISABLED")}`;
+      document.getElementById("current-round").textContent = currentRound.round_id ?? "-";
+      document.getElementById("model-revision").textContent = modelState.revision ?? "-";
+      document.getElementById("latest-result").textContent = latestResult && latestResult.applied ? "APPLIED" : "IDLE";
+      document.getElementById("latest-result").className = `value ${statusClass(latestResult && latestResult.applied ? "ok" : "skipped")}`;
+
+      document.getElementById("toggle-enabled").checked = !!config.enabled;
+      document.getElementById("toggle-auto").checked = !!config.auto_rounds;
+      document.getElementById("learning-rate").value = config.learning_rate ?? 0.2;
+      document.getElementById("min-samples").value = config.min_samples_per_node ?? 8;
+      document.getElementById("max-samples").value = config.max_samples_per_node ?? 64;
+
+      document.getElementById("toggle-ddos").checked = detectionBranches.ddos_enabled !== false;
+      document.getElementById("toggle-gps").checked = detectionBranches.gps_enabled !== false;
+
+      const weights = modelState.weights || {};
+      document.getElementById("ddos-weights").textContent = JSON.stringify(weights.ddos || {}, null, 2);
+      document.getElementById("gps-weights").textContent = JSON.stringify(weights.gps_spoof || {}, null, 2);
+
+      latestRoundResponse = latestResult;
+      renderNodeResults((latestResult && latestResult.node_results) || []);
+    }
+
+    function applyLivePayload(data) {
+      const learning = data.federated_learning || {};
+      const detectionBranches = data.detection_branches || {};
+      applyLearningView(learning, detectionBranches);
+    }
+
+    async function refreshStateFallback() {
+      try {
+        const res = await fetch("/api/state");
+        const payload = await res.json();
+        const learning = payload.learning_state || {};
+        const detectionBranches = payload.detection_branches || {};
+        applyLearningView(learning, detectionBranches);
+      } catch (error) {
+        setStatus(`State fetch failed: ${error}`, "err");
+      }
+    }
+
+    function connectSocket() {
+      if (socketRef && (socketRef.readyState === WebSocket.OPEN || socketRef.readyState === WebSocket.CONNECTING)) {
+        return;
+      }
+      setWsStatus("live: connecting", "warn");
+      socketRef = new WebSocket(toWsUrl(ORCH_URL));
+      socketRef.onopen = () => setWsStatus("live: connected", "ok");
+      socketRef.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg && (msg.event === "snapshot" || msg.event === "update") && msg.data) {
+            applyLivePayload(msg.data);
+          }
+        } catch (err) {
+          console.error("federated lab ws parse error", err);
+        }
+      };
+      socketRef.onclose = () => {
+        setWsStatus("live: disconnected", "err");
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connectSocket, 1500);
+      };
+      socketRef.onerror = () => setWsStatus("live: error", "err");
+    }
+
+    document.getElementById("save-config").addEventListener("click", async () => {
+      const payload = {
+        enabled: document.getElementById("toggle-enabled").checked,
+        auto_rounds: document.getElementById("toggle-auto").checked,
+        learning_rate: Number(document.getElementById("learning-rate").value),
+        min_samples_per_node: Number(document.getElementById("min-samples").value),
+        max_samples_per_node: Number(document.getElementById("max-samples").value),
+      };
+      const res = await fetch("/api/learning/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setStatus(`Config update failed: ${data.error}`, "err");
+        return;
+      }
+      setStatus("Learning config updated.", "ok");
+      await refreshStateFallback();
+    });
+
+    document.getElementById("run-round").addEventListener("click", async () => {
+      setStatus("Running federated round...", "warn");
+      const payload = {
+        force: false,
+        max_samples_per_node: Number(document.getElementById("max-samples").value),
+      };
+      const res = await fetch("/api/learning/round/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setStatus(`Round failed: ${data.error}`, "err");
+        return;
+      }
+      latestRoundResponse = data;
+      renderNodeResults(data.node_results || []);
+      setStatus(data.applied ? "Round applied and synced." : `Round not applied: ${data.reason}`, data.applied ? "ok" : "warn");
+      await refreshStateFallback();
+    });
+
+    document.getElementById("save-branches").addEventListener("click", async () => {
+      const payload = {
+        ddos_enabled: document.getElementById("toggle-ddos").checked,
+        gps_enabled: document.getElementById("toggle-gps").checked,
+      };
+      const res = await fetch("/api/detection/branches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setStatus(`Detection update failed: ${data.error}`, "err");
+        return;
+      }
+      setStatus("Detection branch toggles updated.", "ok");
+      await refreshStateFallback();
+    });
+
+
+    refreshStateFallback().then(connectSocket).catch((err) => {
+      console.error("federated lab initial load failed", err);
+      connectSocket();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+flask==3.0.0
+requests==2.31.0
+python-dotenv==1.0.0
+colorama==0.4.6
+# use unpinned gpt4all (latest compatible) - explicit 3.x not available yet
+# pin to 1.4.x or higher if needed
+gpt4all>=1.4.0
+numpy==1.24.3
+pydantic==2.0.0
+docker>=7.1.0

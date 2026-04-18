@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <span class="chip ok">Service: {{ service_name }}</span>
+  <span class="chip">Pipeline Endpoint: /v1/pipeline/log</span>
+  <span class="chip"><a href="/attack-panel" style="color:inherit;">Open Live Attack Panel</a></span>
+</div>
+
+<div class="card">
+  <h3>Recent Pipeline Requests</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Source</th>
+        <th>Log Type</th>
+        <th>Timestamp</th>
+        <th>Suspicious</th>
+        <th>Event</th>
+      </tr>
+    </thead>
+    <tbody id="pipelineBody">
+      {% for row in requests %}
+      <tr>
+        <td>{{ row.source_device }}</td>
+        <td>{{ row.log_type }}</td>
+        <td>{{ row.timestamp }}</td>
+        <td>{{ row.suspicious }}</td>
+        <td><code>{{ row.event_id }}</code></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5">No pipeline requests yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<script>
+  async function refreshPipeline() {
+    try {
+      const res = await fetch("/v1/pipeline/recent");
+      const data = await res.json();
+      const rows = Array.isArray(data) ? data.slice(0, 30) : [];
+      const html = rows.length ? rows.map((row) => `
+        <tr>
+          <td>${row.source_device ?? "-"}</td>
+          <td>${row.log_type ?? "-"}</td>
+          <td>${row.timestamp ?? "-"}</td>
+          <td>${String(row.suspicious ?? "-")}</td>
+          <td><code>${row.event_id ?? "-"}</code></td>
+        </tr>
+      `).join("") : `<tr><td colspan="5">No pipeline requests yet.</td></tr>`;
+      document.getElementById("pipelineBody").innerHTML = html;
+    } catch (err) {
+      console.error("refreshPipeline", err);
+    }
+  }
+  setInterval(refreshPipeline, 1500);
+</script>
+{% endblock %}
